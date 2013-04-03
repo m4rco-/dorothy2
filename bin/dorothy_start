@@ -1,0 +1,69 @@
+#!/usr/bin/env ruby
+
+require 'rubygems'
+require 'trollop'
+require 'dorothy2'
+
+#load '../lib/dorothy2.rb'
+
+include DoroEnv
+include Dorothy
+
+
+opts = Trollop.options do
+  banner <<-EOS
+
+	The Dorothy Malware Analysis Framework 2.0
+
+  marco.riccardi@
+	www.honeynet.it
+
+
+	Usage:
+	Manager.rb [options]
+	where [options] are:
+  EOS
+
+
+  opt :verbose, "Enable verbose mode"
+  opt :infoflow, "Print the analysis flow"
+  opt :source, "Choose a source (manual|honeypot|ztracker)", :type => :string
+  opt :daemon, "Stay in the backround, by constantly pooling datasources"
+
+end
+
+if opts[:infoflow]
+  puts "
+	The Dorothy Malware Analysis Framework 2.0
+	---------------Execution Flow-------------
+	#0) Fetch new malwares
+	#1) Start VM
+	#2) Copy File to VM
+	#3) Start Sniffer
+	#4) Execute file into VM
+	#5) Make screenshop
+	#6) Wait X minutes (configure X in the conf file)
+	#7) Stop Sniffer
+	#8) Download Screenshot and trafficdump
+	#9) Try to retreive malware info from VirusTotal
+	#10) Insert data to Dorothy-DB
+	------------------------------------------
+	"
+  exit(0)
+end
+
+VERBOSE = (opts[:verbose] ? true : false)
+daemon = (opts[:daemon] ? true : false)
+
+#Logging
+LOGGER = DoroLogger.new(LOGFILE, LOGAGE)
+LOGGER.sev_threshold = LOGLEVEL
+
+begin
+  Dorothy.start opts[:source], daemon
+rescue => e
+  LOGGER.error "Dorothy", "An error occurred: " + $!
+  LOGGER.debug "Dorothy", "#{e.inspect} --BACKTRACE:  #{e.backtrace}"
+  LOGGER.error "Dorothy", "Dorothy has been stopped"
+end
+

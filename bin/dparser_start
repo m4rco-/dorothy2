@@ -1,0 +1,61 @@
+#!/usr/bin/env ruby
+
+#libdir = File.dirname(__FILE__) + "./lib"
+#libdir = File.expand_path(libdir)
+#$: << libdir
+
+require 'rubygems'
+#require 'trollop'
+require '../lib/doroParser'
+
+include DoroEnv
+include DoroParser
+
+
+
+opts = Trollop.options do
+  banner <<-EOS
+	
+	The Dorothy Malware Analysis Framework 2.0   
+	
+	www.honeynet.it 
+	
+	Usage:
+	"do-dissector.rb" [options]
+	where [options] are:
+  EOS
+
+
+  opt :verbose, "Enable verbose mode"
+  opt :nonetbios, "Hide Netbios communication"
+  opt :daemon, "Stay in the backroud, by constantly pooling datasources"
+
+end
+
+def get_time
+  time = Time.new
+  return time.utc.strftime("%Y-%m-%d %H:%M:%S")
+end
+
+
+NONETBIOS = opts[:nonetbios] ? true : false
+VERBOSE = opts[:verbose] ? true : false
+daemon = opts[:daemon] ? true : false
+
+#Logging
+LOGGER_PARSER = DoroLogger.new(LOGFILE_PARSER, LOGAGE)
+LOGGER_PARSER.sev_threshold = LOGLEVEL
+
+LOGGER = LOGGER_PARSER  #for do-utils
+
+begin
+  DoroParser.start daemon
+rescue => e
+  LOGGER.error "Parser", "An error occurred: " + $!
+  LOGGER.debug "Parser", "#{e.inspect} --BACKTRACE: #{e.backtrace}"
+  LOGGER.error "Parser", "Dorothy-Parser has been stopped"
+end
+
+
+
+

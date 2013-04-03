@@ -1,0 +1,17 @@
+#!/usr/bin/env ruby
+
+
+require 'rubygems'
+require 'trollop'
+require '../lib/doroParser'
+
+include DoroEnv
+include DoroParser
+
+
+#Logging
+LOGGER_PARSER = DoroLogger.new(LOGFILE_PARSER, LOGAGE)
+LOGGER_PARSER.sev_threshold = LOGLEVEL
+
+DoroParser.stop
+
