@@ -368,13 +368,15 @@ def self.start(source=nil, daemon=nil)
 
   daemon ||= false
 
-  puts "[Dorothy]aaaa".yellow +  " Started, tail log file to see some stuff.."
+  puts "[Dorothy]".yellow +  " Process Started"
+
+
   LOGGER.info "Dorothy", "Started".yellow
 
   if daemon
-    puts "asd"
     check_pid_file PIDFILE
     puts "[Dorothy]".yellow + " Going in backround with pid #{Process.pid}"
+    puts "[Dorothy]".yellow + " Logging on #{LOGFILE}"
     Process.daemon
     create_pid_file PIDFILE
     LOGGER.info "Dorothy", "Going in backround with pid #{Process.pid}"
@@ -388,8 +390,6 @@ def self.start(source=nil, daemon=nil)
   @vtotal_threads = []
   @vtotal_threads = []
   @analysis_threads = []
-
-  puts "OK"
 
   infinite = true
 
@@ -478,7 +478,7 @@ def self.stop
     puts "[Dorothy]".yellow +  " Process #{pid} terminated"
     LOGGER.info "Dorothy", "Process #{pid} terminated"
   else
-    puts "[Dorothy]".yellow +  "Can't find PID file, is Dorothy really running?"
+    puts "[Dorothy]".yellow +  " Can't find PID file, is Dorothy really running?"
   end
 end
 

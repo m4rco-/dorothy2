@@ -1,23 +1,18 @@
 #!/usr/bin/env ruby
 
-#libdir = File.dirname(__FILE__) + "./lib"
-#libdir = File.expand_path(libdir)
-#$: << libdir
-
 require 'rubygems'
 require 'trollop'
-require 'dorothy2'
+#require 'dorothy2'
+load '../lib/dorothy2.rb'
+
 
 include DoroEnv
 include Dorothy
 
 
-#VERBOSE = (opts[:verbose] ? true : false)
-#daemon = (opts[:daemon] ? true : false)
-
 #Logging
-LOGGER = DoroLogger.new(DoroEnv::LOGFILE, DoroEnv::LOGAGE)
-LOGGER.sev_threshold = DoroEnv::LOGLEVEL
+LOGGER = DoroLogger.new(LOGFILE, LOGAGE)
+LOGGER.sev_threshold = LOGLEVEL
 
 Dorothy.stop
 

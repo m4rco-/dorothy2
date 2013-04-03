@@ -2,9 +2,8 @@
 
 require 'rubygems'
 require 'trollop'
-require 'dorothy2'
-
-#load '../lib/dorothy2.rb'
+#require 'dorothy2'
+load '../lib/dorothy2.rb'
 
 include DoroEnv
 include Dorothy
@@ -56,7 +55,8 @@ VERBOSE = (opts[:verbose] ? true : false)
 daemon = (opts[:daemon] ? true : false)
 
 #Logging
-LOGGER = DoroLogger.new(LOGFILE, LOGAGE)
+logout = (daemon ? LOGFILE : STDOUT)
+LOGGER = DoroLogger.new(logout, LOGAGE)
 LOGGER.sev_threshold = LOGLEVEL
 
 begin
