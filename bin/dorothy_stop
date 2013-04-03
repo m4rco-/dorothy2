@@ -2,8 +2,9 @@
 
 require 'rubygems'
 require 'trollop'
-#require 'dorothy2'
-load '../lib/dorothy2.rb'
+require 'dorothy2'
+
+#load '../lib/dorothy2.rb'
 
 
 include DoroEnv
