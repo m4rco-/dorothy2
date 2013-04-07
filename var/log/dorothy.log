@@ -60,3 +60,7 @@
 [04/04/2013 00:34:45] WARN [[33mBFM[0m]  The binary 5aa745f47f9281fa6ff781d6f5f725cc13f171a1f18ba281c42fd4273d8083d7 has been already added on 2013-02-03 22:33:42
 [04/04/2013 00:34:45] INFO [[33mDorothy[0m] Process finished
 [04/04/2013 00:34:45] INFO [[33mDorothy[0m] SLEEPING
+[04/04/2013 21:12:50] INFO [[33mBFM[0m]  Fetching trojan from ----> filesystem: /Users/akira/Codes/dorothy-gem-try/dorothy2/opt/bins/manual
+[04/04/2013 21:12:50] WARN [[33mBFM[0m]  The binary 5aa745f47f9281fa6ff781d6f5f725cc13f171a1f18ba281c42fd4273d8083d7 has been already added on 2013-02-03 22:33:42
+[04/04/2013 21:12:50] INFO [[33mDorothy[0m] Process finished
+[04/04/2013 21:12:50] INFO [[33mDorothy[0m] SLEEPING

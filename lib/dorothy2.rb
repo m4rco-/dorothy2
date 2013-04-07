@@ -17,7 +17,12 @@ require 'ftools' #deprecated at ruby 1.9 !!!
 require 'filemagic'
 require 'md5'
 
-require File.dirname(__FILE__) + '/environment'
+require File.dirname(__FILE__) + '/dorothy2/do-init'
+require File.dirname(__FILE__) + '/dorothy2/Settings'
+require File.dirname(__FILE__) + '/dorothy2/deep_symbolize'
+
+require File.dirname(__FILE__) + '/dorothy2/environment'
+
 require File.dirname(__FILE__) + '/dorothy2/vtotal'
 require File.dirname(__FILE__) + '/dorothy2/MAM'
 require File.dirname(__FILE__) + '/dorothy2/BFM'
@@ -37,9 +42,9 @@ def start_analysis(bins, daemon)
     next unless check_support(bin)
     scan(bin) unless TESTMODE
     @analysis_threads << Thread.new(bin.filename){
-      sleep 30 while !(guestvm = @db.find_vm)  #guestvm struct: array ["sandbox id", "sandbox hostname", "ipaddress"]
+      sleep 30 while !(guestvm = Insertdb.find_vm)  #guestvm struct: array ["sandbox id", "sandbox name", "ipaddress", "user", "password"]
       analyze(bin, guestvm)
-      @db.free_vm(guestvm[0])
+      Insertdb.free_vm(guestvm[0])
     }
   end
 end
@@ -64,7 +69,7 @@ def analyze(bin, guestvm)
   #Dir.chdir(sinfo[:dir])
 
   #set home vars
-  sample_home = "#{ANALYSIS_DIR}/#{bin.md5}"
+  sample_home = DoroSettings.env[:analysis_dir] + "/#{bin.md5}"
 
 
   LOGGER.info "SANDBOX", "VM#{guestvm[0]} ".yellow + "Analyzing binary #{bin.filename}"
@@ -88,7 +93,7 @@ def analyze(bin, guestvm)
       end
 
     else
-      LOGGER.warn "SANDBOX","Malware #{bin.md5} sample_home already present, is this binary has been already analyzed? Skipping.." if VERBOSE
+      LOGGER.warn "SANDBOX","Malware #{bin.md5} sample_home already present, is this binary has been already analyzed? Skipping.."
       #print "\n"
       return false
     end
@@ -99,9 +104,9 @@ def analyze(bin, guestvm)
 
 
     #Creating a new MAM object for managing the SandBox VM
-    LOGGER.info "MAM","VM#{guestvm[0]} ".yellow + "Connecting to ESXi VM #{ESXSERVER}"
+    LOGGER.info "MAM","VM#{guestvm[0]} ".yellow + "Connecting to ESX Server #{DoroSettings.esx[:host]}"
 
-    mam = DorothyMAM.new(ESXSERVER,ESXUSER,ESXPASS,guestvm[1], VMUSER, VMPASS)
+    mam = DorothyMAM.new(DoroSettings.esx[:host],DoroSettings.esx[:user],DoroSettings.esx[:pass],guestvm[1], guestvm[3], guestvm[4])
 
 
     #Copy File to VM
@@ -140,20 +145,18 @@ def analyze(bin, guestvm)
       #Execute File into VM
       LOGGER.info "MAM","VM#{guestvm[0]} ".yellow + "Executing #{bin.md5} File into VM"
 
-
-
       guestpid = mam.exec_file("#{bin.md5}#{bin.extension}")
 
       LOGGER.debug "MAM","VM#{guestvm[0]} ".yellow + "Program executed with PID #{guestpid}" if VERBOSE
 
 
-      LOGGER.info "MAM","VM#{guestvm[0]}".yellow + " Sleeping #{SLEEPTIME} seconds".yellow
+      LOGGER.info "MAM","VM#{guestvm[0]}".yellow + " Sleeping #{DoroSettings.sandbox[:sleeptime]} seconds".yellow
 
       #wait n seconds
 
       (1..SLEEPTIME).each do |i|
-        @screenshot1 = mam.screenshot if i == SCREEN1TIME
-        @screenshot2 = mam.screenshot if i == SCREEN2TIME
+        @screenshot1 = mam.screenshot if i == DoroSettings.sandbox[:screen1time]
+        @screenshot2 = mam.screenshot if i == DoroSettings.sandbox[:screen2time]
         #t = "."*i
         #print "VM#{guestvm[0]}Sleeping #{SLEEPTIME} seconds".yellow  + " #{t}\r"
         #print "VM#{guestvm[0]}Sleeping #{SLEEPTIME} seconds".yellow + " #{t}" + " [Done]\n".green if i == SLEEPTIME
@@ -196,7 +199,7 @@ def analyze(bin, guestvm)
     @nam.download_pcap("#{dumpname}.pcap", bin.dir_pcap)
 
     #Downloading Screenshots
-    @nam1 = DorothyNAM.new([ESXSERVER, ESXUSER, ESXPASS])
+    @nam1 = DorothyNAM.new([DoroSettings.esx[:host], DoroSettings.esx[:user], DoroSettings.esx[:pass]])
 
     LOGGER.info "NAM", "VM#{guestvm[0]} ".yellow + "Downloading Screenshots"
     @nam1.download(@screenshot1, bin.dir_screens)
@@ -235,24 +238,22 @@ def analyze(bin, guestvm)
     LOGGER.debug "DB", "VM#{guestvm[0]} Database insert phase" if VERBOSE
 
 
-    @db.begin_t
-
-    unless @db.insert("traffic_dumps", dumpvalues)
+    unless Insertdb.insert("traffic_dumps", dumpvalues)
       LOGGER.fatal "DB", "VM#{guestvm[0]} Error while inserting data into table traffic_dumps. Skipping binary #{bin.md5}"
       FileUtils.rm_r(sample_home)
       return false
     end
 
 
-    unless @db.insert("analyses", analysis_values)
+    unless Insertdb.insert("analyses", analysis_values)
       LOGGER.fatal "DB", "VM#{guestvm[0]} Error while inserting data into table analyses. Skipping binary #{bin.md5}"
       FileUtils.rm_r(sample_home)
       return false
     end
 
-    unless bin.sourceinfo.nil?		###TODO mmm may source info be used even for other sources a part of AIRIS?
-                                  ###UPLOAD EVIDENCES TO AIRIS
-      LOGGER.info "AIRIS", "VM#{guestvm[0]}".yellow + " UPLOADING EVIDENCES TO AIRIS TICKET ID #{bin.sourceinfo}"
+    unless bin.sourceinfo.nil?		###TODO mmm may source info be used even for other sources a part of xx?
+                                  ###UPLOAD EVIDENCES TO xxx
+      LOGGER.info "AIRIS", "VM#{guestvm[0]}".yellow + " UPLOADING EVIDENCES TO xxx TICKET ID #{bin.sourceinfo}"
       airis = AIRIS.new(AIRIS_URL)
       analysis_text ="
 			Dorothy Evidences for binary #{bin.filename}
@@ -269,8 +270,8 @@ def analyze(bin, guestvm)
     #puts "Done, commit changes?"
     #gets
 
-    @db.commit
-
+    Insertdb.commit
+    Insertdb.close
 
     LOGGER.info "MAM", "VM#{guestvm[0]} ".yellow + "Removing file from /bins directory"
     FileUtils.rm(bin.binpath)
@@ -286,7 +287,8 @@ def analyze(bin, guestvm)
     LOGGER.error "Dorothy" , "#{$!}\n #{e.inspect} \n #{e.backtrace}"
 
     FileUtils.rm_r(sample_home)
-    @db.rollback unless @db.nil?  #rollback in case there is a transaction on going
+    Insertdb.rollback unless Insertdb.nil?  #rollback in case there is a transaction on going
+    Insertdb.close
     return false
   end
 
@@ -306,7 +308,6 @@ def scan(bin)
     LOGGER.info "VTOTAL", "Scanning file #{bin.md5}".yellow
 
     vt = Vtotal.new
-    db = Insertdb.new
     id = vt.analyze_file(bin.binpath)
 
     LOGGER.debug "VTOTAL", "Sleeping"
@@ -324,7 +325,7 @@ def scan(bin)
     LOGGER.info "VTOTAL", "Updating DB"
     vtvalues = [bin.sha, vt.family, vt.vendor, vt.version, vt.rate, vt.updated, vt.detected]
     begin
-      db.insert("malwares", vtvalues)
+      Insertdb.insert("malwares", vtvalues)
     rescue
       LOGGER.error "VTOTAL", "Error while inserting values in malware table"
     end
@@ -384,8 +385,8 @@ def self.start(source=nil, daemon=nil)
 
   #Creating a new NAM object for managing the sniffer
   @nam = DorothyNAM.new([NAMSERVER, NAMUSER, NAMPASS, PCAPHOME])
-  @db = Insertdb.new
-
+  Insertdb.connect
+  Insertdb.begin_t  #needed for rollbacks
 
   @vtotal_threads = []
   @vtotal_threads = []
@@ -394,19 +395,19 @@ def self.start(source=nil, daemon=nil)
   infinite = true
 
   #be sure that all the vm are available by forcing their release
-  @db.vm_init
+  Insertdb.vm_init
 
   if source # a source has been specified
     while infinite  #infinite loop
-      selected_source = Hash[SOURCES.select {|k,v| k == source}]
-      dfm = DorothyFetcher.new(selected_source)
+      dfm = DorothyFetcher.new(source)
+
       start_analysis(dfm.bins, daemon)
       infinite = daemon #exit if wasn't set
       wait_end
       LOGGER.info "Dorothy", "SLEEPING" if daemon
-      sleep DTIMEOUT if daemon # Sleeping a while if -d wasn't set, then quit.
+      sleep DoroSettings.env[:dtimeout] if daemon # Sleeping a while if -d wasn't set, then quit.
     end
-  else  # no sources scecified, analyze all of them
+  else  # no sources specified, analyze all of them
     while infinite  #infinite loop
       SOURCES.each do |sname, sinfo|
         selected_source = Hash[SOURCES.select {|k,v| k == sname}]
@@ -475,7 +476,7 @@ def self.stop
   if pid_file and File.exist? pid_file
     pid = Integer(File.read(pid_file))
     Process.kill -15, -pid
-    puts "[Dorothy]".yellow +  " Process #{pid} terminated"
+    puts "[Dorothy]".yellow + " Process #{pid} terminated"
     LOGGER.info "Dorothy", "Process #{pid} terminated"
   else
     puts "[Dorothy]".yellow +  " Can't find PID file, is Dorothy really running?"

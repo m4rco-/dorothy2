@@ -2,9 +2,9 @@
 
 require 'rubygems'
 require 'trollop'
-require 'dorothy2'
+#require 'dorothy2'
 
-#load '../lib/dorothy2.rb'
+load '../lib/dorothy2.rb'
 
 include DoroEnv
 include Dorothy
@@ -52,16 +52,47 @@ if opts[:infoflow]
   exit(0)
 end
 
+conf = '../etc/dorothy.yml'
+sfile = '../etc/sources.yml'
+sboxfile = '../etc/sandboxes.yml'
+
+DoroConfig.exists?(conf) ? DoroSettings.load!(conf) : DoroConfig.create
+
+if DoroConfig.exists?(sfile)
+  sources = YAML.load_file(sfile)
+else
+  puts "[WARNING]".red + " A source file doesn't exist, please crate one in the /etc folder"
+  exit(0)
+end
+
+if DoroConfig.exists?(sboxfile)
+  sources = YAML.load_file(sboxfile)
+else
+  puts "[WARNING]".red + " There is no sandbox configured yet. Please do it now"
+  DoroConfig.create_sandbox
+end
+
+
 VERBOSE = (opts[:verbose] ? true : false)
 daemon = (opts[:daemon] ? true : false)
 
+if opts[:source] && !sources.key?(opts[:source])
+  puts "The selected source is not yet configured.\nThe available sources are: "
+  puts sources.keys
+  exit(0)
+end
+
 #Logging
-logout = (daemon ? LOGFILE : STDOUT)
-LOGGER = DoroLogger.new(logout, LOGAGE)
-LOGGER.sev_threshold = LOGLEVEL
+logout = (daemon ? DoroSettings.env[:logfile] : STDOUT)
+LOGGER = DoroLogger.new(logout, DoroSettings.env[:logage])
+LOGGER.sev_threshold = DoroSettings.env[:loglevel]
+
+puts "sources selected:"
+puts sources[opts[:source]].to_yaml
+
 
 begin
-  Dorothy.start opts[:source], daemon
+  Dorothy.start sources[opts[:source]], daemon
 rescue => e
   LOGGER.error "Dorothy", "An error occurred: " + $!
   LOGGER.debug "Dorothy", "#{e.inspect} --BACKTRACE:  #{e.backtrace}"

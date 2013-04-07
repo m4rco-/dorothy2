@@ -1,0 +1,32 @@
+#############################################
+### DOROTHY SOURCE LIST                     #
+#############################################
+###
+### type means the communication channel used
+### to download the binaries, possible values
+### are: system | ssh
+###
+### typeid defines the type of the source, it
+### depends on a userdefined-type in
+### dorothive(DB) (table Sensors) please use
+### ONLY the following ones (or add new ones
+### in the DB accordingly)
+###
+### 0  - lowinteraction
+### 1  - external source
+### 2  - unknown
+#############################################
+---
+malwarefolder:
+    type: system
+    localdir: /Users/akira/Codes/dorothy-gem-try/dorothy2/opt/bins/manual
+    typeid: 2
+honeypot1:
+    type: ssh
+    ip: 1.2.3.4
+    port: 22
+    user: asd
+    pass: asdasdasd
+    remotedir: /asda/bins
+    localdir: /opt/bins/honeypot
+    typeid: 0
