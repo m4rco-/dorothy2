@@ -1,3 +1,6 @@
+##for irb debug:
+##from $home, irb and :
+##load 'lib/dorothy2.rb'; include Dorothy; LOGGER = DoroLogger.new(STDOUT, "weekly"); DoroSettings.load!('etc/dorothy.yml')
 $LOAD_PATH.unshift '/opt/local/lib/ruby/gems/1.8/gems/ruby-filemagic-0.4.2/lib'
 
 require 'net/ssh'
@@ -135,7 +138,7 @@ def analyze(bin, guestvm)
 
     #Start Sniffer
     dumpname = bin.md5
-    pid = @nam.start_sniffer(guestvm[2],dumpname) #dumpname = vmfile.pcap
+    pid = @nam.start_sniffer(guestvm[2],dumpname, DoroSettings.nam[:pcaphome]) #dumpname = vmfile.pcap
     LOGGER.info "NAM","VM#{guestvm[0]} ".yellow + "Start sniffing module"
     LOGGER.debug "NAM","VM#{guestvm[0]} ".yellow + "Tcpdump instance #{pid} started" if VERBOSE
 
@@ -154,7 +157,7 @@ def analyze(bin, guestvm)
 
       #wait n seconds
 
-      (1..SLEEPTIME).each do |i|
+      (1..DoroSettings.sandbox[:sleeptime]).each do |i|
         @screenshot1 = mam.screenshot if i == DoroSettings.sandbox[:screen1time]
         @screenshot2 = mam.screenshot if i == DoroSettings.sandbox[:screen2time]
         #t = "."*i
@@ -196,19 +199,18 @@ def analyze(bin, guestvm)
 
     #Downloading PCAP
     LOGGER.info "NAM", "VM#{guestvm[0]} ".yellow + "Downloading #{dumpname}.pcap to #{bin.dir_pcap}"
-    @nam.download_pcap("#{dumpname}.pcap", bin.dir_pcap)
+    #t = DoroSettings.nam[:pcaphome] + "/" + dumpname + ".pcap"
+    Ssh.download(DoroSettings.nam[:host], DoroSettings.nam[:user],DoroSettings.nam[:pass], DoroSettings.nam[:pcaphome] + "/" + dumpname + ".pcap", bin.dir_pcap)
 
-    #Downloading Screenshots
-    @nam1 = DorothyNAM.new([DoroSettings.esx[:host], DoroSettings.esx[:user], DoroSettings.esx[:pass]])
-
+    #Downloading Screenshots from esx
     LOGGER.info "NAM", "VM#{guestvm[0]} ".yellow + "Downloading Screenshots"
-    @nam1.download(@screenshot1, bin.dir_screens)
-    @nam1.download(@screenshot2, bin.dir_screens)
+    Ssh.download(DoroSettings.esx[:host],DoroSettings.esx[:user], DoroSettings.esx[:pass], @screenshot1, bin.dir_screens)
+    Ssh.download(DoroSettings.esx[:host],DoroSettings.esx[:user], DoroSettings.esx[:pass], @screenshot2, bin.dir_screens)
 
-    #
-    #
-    #
-    #UPDATE DOROTHIBE DB
+
+    #####################
+    #UPDATE DOROTHIBE DB#
+    #####################
 
     pcapfile =  bin.dir_pcap + dumpname + ".pcap"
     dump = Loadmalw.new(pcapfile)
@@ -251,21 +253,8 @@ def analyze(bin, guestvm)
       return false
     end
 
-    unless bin.sourceinfo.nil?		###TODO mmm may source info be used even for other sources a part of xx?
-                                  ###UPLOAD EVIDENCES TO xxx
-      LOGGER.info "AIRIS", "VM#{guestvm[0]}".yellow + " UPLOADING EVIDENCES TO xxx TICKET ID #{bin.sourceinfo}"
-      airis = AIRIS.new(AIRIS_URL)
-      analysis_text ="
-			Dorothy Evidences for binary #{bin.filename}
-			###################################################"
+    #TODO ADD RT CODE
 
-      screenshot1 = bin.dir_screens + File.basename(@screenshot1)
-      screenshot2 = bin.dir_screens + File.basename(@screenshot2)
-      attachments = pcapfile + "," + screenshot1 + "," + screenshot2
-
-      airis.add_comment(bin.sourceinfo, analysis_text, attachments) unless DISABLE_AIRIS_COMMENTS   #Add the Traffic Dump and screens as attachmemnt
-
-    end
 
     #puts "Done, commit changes?"
     #gets
@@ -284,11 +273,10 @@ def analyze(bin, guestvm)
   rescue => e
 
     LOGGER.error "SANDBOX", "VM#{guestvm[0]} An error occurred while analyzing #{bin.filename}, skipping\n"
-    LOGGER.error "Dorothy" , "#{$!}\n #{e.inspect} \n #{e.backtrace}"
+    LOGGER.error "Dorothy" , "#{$!}\n #{e.inspect} \n #{e.backtrace}" if VERBOSE
 
     FileUtils.rm_r(sample_home)
     Insertdb.rollback unless Insertdb.nil?  #rollback in case there is a transaction on going
-    Insertdb.close
     return false
   end
 
@@ -330,31 +318,7 @@ def scan(bin)
       LOGGER.error "VTOTAL", "Error while inserting values in malware table"
     end
 
-    unless bin.sourceinfo.nil?
-
-      fields = {"CF-McAfee Virus Family" => vt.family , "CF-VirusTotal Detection Rate" => vt.rate}
-
-      airis = AIRIS.new(AIRIS_URL)
-      airis.update_ticket(bin.sourceinfo, fields) unless DISABLE_AIRIS_COMMENTS
-
-
-      comment = "
-			Dorothy - Virus Total Report
-			###########################
-			Binary SHA: #{bin.sha}
-			Binary MD5: #{bin.md5}
-			AV detection: #{vt.detected}
-			Virus Family by #{vt.vendor}:
-			AV version: #{vt.version}
-			AV Rate: #{vt.rate}
-			Updated on: #{vt.updated}
-			Permalink: #{vt.permalink}
-      "
-
-      airis.add_comment(bin.sourceinfo, comment) unless DISABLE_AIRIS_COMMENTS
-
-    end
-
+    #TODO upload evidence to RT
   }
 
 end
@@ -384,8 +348,8 @@ def self.start(source=nil, daemon=nil)
   end
 
   #Creating a new NAM object for managing the sniffer
-  @nam = DorothyNAM.new([NAMSERVER, NAMUSER, NAMPASS, PCAPHOME])
-  Insertdb.connect
+  @nam = DorothyNAM.new(DoroSettings.nam)
+  #Insertdb.connect
   Insertdb.begin_t  #needed for rollbacks
 
   @vtotal_threads = []
@@ -400,7 +364,6 @@ def self.start(source=nil, daemon=nil)
   if source # a source has been specified
     while infinite  #infinite loop
       dfm = DorothyFetcher.new(source)
-
       start_analysis(dfm.bins, daemon)
       infinite = daemon #exit if wasn't set
       wait_end
@@ -417,7 +380,7 @@ def self.start(source=nil, daemon=nil)
       infinite = daemon #exit if wasn't set
       wait_end
       LOGGER.info "Dorothy", "SLEEPING" if daemon
-      sleep DTIMEOUT if daemon # Sleeping a while if -d wasn't set, then quit.
+      sleep DoroSettings.env[:dtimeout] if daemon # Sleeping a while if -d wasn't set, then quit.
     end
   end
 

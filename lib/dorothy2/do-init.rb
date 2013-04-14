@@ -111,11 +111,11 @@ module Dorothy
         puts "Network Analysis Module (NAM) configuration"
         puts "Please insert the information of the host that you will use for sniffing the Sandbox traffic"
         puts "IP Addres:"
-        conf["nam"]["namserver"] = gets.chop
+        conf["nam"]["host"] = gets.chop
         puts "Username [dorothy] :"
-        conf["nam"]["namuser"] = (t = gets.chop).empty? ? "dorothy" : t
+        conf["nam"]["port"] = (t = gets.chop).empty? ? "22" : t
         puts "Password:"
-        conf["nam"]["nampass"] = gets.chop
+        conf["nam"]["pass"] = gets.chop
         puts "Folder where to store PCAP files [~/pcaps]"
         conf["nam"]["pcaphome"] = (t = gets.chop).empty? ? "~/pcaps" : t
 
@@ -142,10 +142,6 @@ module Dorothy
 
       end
 
-    end
-
-    def exists?(file)
-      File.exist?(file)
     end
 
     def create_sandbox
@@ -225,7 +221,7 @@ module Dorothy
 
 
     #This method will populate the dorothive table sandboxes
-    def init_sandbox(file)
+    def init_sandbox(file="../etc/sandboxes.yml")
       conf = YAML.load_file(file)
       conf.each_key do |sbox|
         LOGGER.info "INIT", "Inserting #{sbox}"
@@ -238,7 +234,6 @@ module Dorothy
         if !Insertdb.insert("sandboxes", values)             #no it isn't, insert it
           LOGGER.fatal "BFM", " ERROR-DB, please redo the operation"
           Insertdb.rollback
-          Insertdb.close
           next
         else
           Insertdb.commit

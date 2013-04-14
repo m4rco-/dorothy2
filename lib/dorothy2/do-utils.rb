@@ -10,6 +10,21 @@ module Dorothy
       File.open(file , 'w') {|f| f.write(string) }
     end
 
+    def exists?(file)
+      File.exist?(file)
+    end
+
+  end
+
+  module Ssh
+
+    extend self
+
+    def download(host, user, pass, file, dest, port=22)
+      Net::SSH.start(host, user, :password => pass, :port =>port) do |ssh|
+        ssh.scp.download! file, dest
+      end
+    end
   end
 
   module Insertdb
@@ -17,7 +32,7 @@ module Dorothy
     extend self
 
     def connect
-    @db = PGconn.open(:host=> DoroSettings.dorothive[:dbhost], :dbname=>DoroSettings.dorothive[:dbname], :user=>DoroSettings.dorothive[:dbuser], :password=>DoroSettings.dorothive[:dbpass])
+      @db = PGconn.open(:host=> DoroSettings.dorothive[:dbhost], :dbname=>DoroSettings.dorothive[:dbname], :user=>DoroSettings.dorothive[:dbuser], :password=>DoroSettings.dorothive[:dbpass])
     end
 
     def begin_t
@@ -44,9 +59,9 @@ module Dorothy
 
       if answ == "yes"
         begin
-        #ugly, I know, but couldn't find a better and easier way..
-        raise 'An error occurred' unless system "psql -h #{DoroSettings.dorothive[:dbhost]} -U #{DoroSettings.dorothive[:dbuser]} -f #{DoroSettings.dorothive[:ddl]}"
-        LOGGER.info "DB", "Database correctly initialized."
+          #ugly, I know, but couldn't find a better and easier way..
+          raise 'An error occurred' unless system "psql -h #{DoroSettings.dorothive[:dbhost]} -U #{DoroSettings.dorothive[:dbuser]} -f #{DoroSettings.dorothive[:ddl]}"
+          LOGGER.info "DB", "Database correctly initialized."
         rescue => e
           LOGGER.error "DB", $!
           LOGGER.debug "DB", e.inspect
@@ -120,6 +135,10 @@ module Dorothy
       return escaped
     end
 
+    def table_empty?(table)
+      @db.exec("SELECT CASE WHEN EXISTS (SELECT * FROM dorothy.#{table} LIMIT 1) THEN FALSE ELSE TRUE END").first["case"] == "t" ? true : false
+    end
+
     def update_proto(role, ip)
       @db.exec("UPDATE dorothy.host_roles set app_protocol = '#{proto}' where id = currval('connections_id_seq')")
     end
@@ -186,7 +205,6 @@ module Dorothy
       LOGGER.debug "DB", " All VM are now available"
       #TODO - revert them too?
     end
-
 
   end
 

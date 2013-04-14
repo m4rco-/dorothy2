@@ -8,14 +8,16 @@ class DorothyMAM
     begin
       vim = RbVmomi::VIM.connect(:host => server , :user => user, :password=> pass, :insecure => true)
     rescue Timeout::Error
-      LOGGER.fatal "Fail to connect to the ESXi server #{server} - TimeOut (Are you sure that is the right address?)"
+      LOGGER.fatal "ESX", "Fail to connect to the ESXi server #{server} - TimeOut (Are you sure that is the right address?)"
       exit!(1)
     end
 
     @server = server
-
     dc = vim.serviceInstance.find_datacenter
     @vm = dc.find_vm(vmname)
+
+    raise "Virtual Machine #{vmname} not present within ESX!!" if @vm.nil?
+
     om = vim.serviceContent.guestOperationsManager
     am = om.authManager
     @pm = om.processManager
@@ -24,8 +26,7 @@ class DorothyMAM
     #AUTHENTICATION
     guestauth = {:interactiveSession => false, :username => guestuser, :password => guestpass}
     @auth=RbVmomi::VIM::NamePasswordAuthentication(guestauth)
-    abort "[ERROR] User not authenticated" if am.ValidateCredentialsInGuest(:vm => @vm, :auth => @auth) != nil
-
+    abort if am.ValidateCredentialsInGuest(:vm => @vm, :auth => @auth) != nil
   end
 
   def start_vm(vmname)
@@ -175,27 +176,23 @@ class Loadmalw
 
 end
 
-class DorothyNAM
-  attr_accessor :server
-  attr_accessor :user
-  attr_accessor :pass
-  attr_accessor :pcaphome
+class DorothyNAM    #Change to Module!??
 
   #Create a dotothy user in the NSM machine, and add this line to the sudoers :
   #   dorothy  ALL = NOPASSWD: /usr/sbin/tcpdump, /bin/kill
   #
 
-  def initialize(mamdata)
-    @server = mamdata[0]
-    @user= mamdata[1]
-    @pass= mamdata[2]
-    @pcaphome = mamdata[3]
+  def initialize(namdata)
+    @server = namdata[:host]
+    @user= namdata[:user]
+    @pass= namdata[:pass]
+    @port = namdata[:port]
   end
 
-  def start_sniffer(vmaddress, name)
-    Net::SSH.start(@server, @user, :password => @pass) do |@ssh|
+  def start_sniffer(vmaddress, name, pcaphome)
+      Net::SSH.start(@server, @user, :password => @pass, :port =>@port) do |@ssh|
      # @ssh.exec "nohup sudo tcpdump -i eth0 -s 1514 -w ~/pcaps/#{name}.pcap host #{vmaddress} > blah.log 2>&1 & "
-      @ssh.exec "nohup sudo tcpdump -i en0 -s 1514 -w ~/pcaps/#{name}.pcap host #{vmaddress} > blah.log 2>&1 & "
+      @ssh.exec "nohup sudo tcpdump -i en0 -s 1514 -w #{pcaphome}/#{name}.pcap host #{vmaddress} > blah.log 2>&1 & "
       t = @ssh.exec!"ps aux |grep #{vmaddress}|grep -v grep|grep -v bash"
       #puts "MAM Process GREP: " + t
       pid = t.split(" ")[1]
@@ -203,23 +200,8 @@ class DorothyNAM
     end
   end
 
-  #TODO: delete and use only the function download()
-  def download_pcap(pcap,dest)
-    Net::SSH.start(@server, @user, :password => @pass) do |ssh|
-      #puts "Downloading #{@pcaphome}/#{pcap}"
-      ssh.scp.download! "#{@pcaphome}/#{pcap}", dest
-    end
-  end
-
-  #TODO: move to Utility.rb library?
-  def download(file,dest)
-    Net::SSH.start(@server, @user, :password => @pass) do |ssh|
-      ssh.scp.download! file, dest
-    end
-  end
-
   def stop_sniffer(pid)
-    Net::SSH.start(@server, @user, :password => @pass) do |ssh|
+    Net::SSH.start(@server, @user, :password => @pass, :port =>@port) do |ssh|
       ssh.exec "sudo kill -2 #{pid}"
       #LOGGER.info "[NAM]".yellow + "Tcpdump instance #{pid} stopped"
     end

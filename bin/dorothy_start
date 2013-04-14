@@ -52,44 +52,51 @@ if opts[:infoflow]
   exit(0)
 end
 
-conf = '../etc/dorothy.yml'
-sfile = '../etc/sources.yml'
-sboxfile = '../etc/sandboxes.yml'
-
-DoroConfig.exists?(conf) ? DoroSettings.load!(conf) : DoroConfig.create
-
-if DoroConfig.exists?(sfile)
-  sources = YAML.load_file(sfile)
-else
-  puts "[WARNING]".red + " A source file doesn't exist, please crate one in the /etc folder"
-  exit(0)
-end
-
-if DoroConfig.exists?(sboxfile)
-  sources = YAML.load_file(sboxfile)
-else
-  puts "[WARNING]".red + " There is no sandbox configured yet. Please do it now"
-  DoroConfig.create_sandbox
-end
-
-
+#VARS
 VERBOSE = (opts[:verbose] ? true : false)
 daemon = (opts[:daemon] ? true : false)
 
-if opts[:source] && !sources.key?(opts[:source])
-  puts "The selected source is not yet configured.\nThe available sources are: "
-  puts sources.keys
-  exit(0)
-end
+#DEFAULT CONF FILES
+conf = '../etc/dorothy.yml'
+
+#LOAD ENV
+Util.exists?(conf) ? DoroSettings.load!(conf) : DoroConfig.create
+
+sfile = DoroSettings.env[:home] + '/etc/sources.yml'
+sboxfile = DoroSettings.env[:home] + '/etc/sandboxes.yml'
 
 #Logging
 logout = (daemon ? DoroSettings.env[:logfile] : STDOUT)
 LOGGER = DoroLogger.new(logout, DoroSettings.env[:logage])
 LOGGER.sev_threshold = DoroSettings.env[:loglevel]
 
-puts "sources selected:"
-puts sources[opts[:source]].to_yaml
+#INIT DB Connector
+Insertdb.connect
 
+if Util.exists?(sfile)
+  sources = YAML.load_file(sfile)
+else
+  puts "[WARNING]".red + " A source file doesn't exist, please crate one in the /etc folder" #TODO ..or specify another one in the args -S
+  exit(0)
+end
+
+unless Util.exists?(sboxfile)
+  puts "[WARNING]".red + " There is no sandbox configured yet. Please do it now"
+  DoroConfig.create_sandbox
+  DoroConfig.init_sandbox(sboxfile)
+end
+
+#Check DB sandbox data
+if Insertdb.table_empty?("sandboxes")
+  puts "[WARNING]".red + " No sandbox found in Dorothive, the DB will be filled with " + sboxfile
+  DoroConfig.init_sandbox(sboxfile)
+end
+
+if opts[:source] && !sources.key?(opts[:source])
+  puts "[WARNING]".red + " The selected source is not yet configured.\nThe available sources are: "
+  puts sources.keys
+  exit(0)
+end
 
 begin
   Dorothy.start sources[opts[:source]], daemon

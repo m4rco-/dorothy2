@@ -19,18 +19,19 @@ env:
   logfile: /Users/akira/Codes/dorothy-gem-try/dorothy2/var/log/dorothy.log
   home: /Users/akira/Codes/dorothy-gem-try/dorothy2
 esx: 
-  user: "root"
-  pass: "Dorothy!?!"
-  host: "192.168.187.128"
+  user: root
+  pass: Dorothy!?!
+  host: 192.168.187.128
 sandbox: 
   screen1time: 1
-  sleeptime: 60
+  sleeptime: 20
   screen2time: 15
 nam: 
-  namuser: dorothy
-  pcaphome: ~/pcaps
-  nampass: ""
-  namserver: ""
+  user: dorothy
+  pcaphome: /Users/dorothy/pcaps
+  pass: dorothy!
+  host: localhost
+  port: 22
 virustotal: 
   vtapikey: "c37baad50a42d7df3f91e957255a2c6a9deabe339c2ff44d4a637fff912def48"
 
