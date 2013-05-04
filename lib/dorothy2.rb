@@ -43,11 +43,13 @@ end
 def start_analysis(bins, daemon)
   bins.each do |bin|
     next unless check_support(bin)
-    scan(bin) unless TESTMODE
+    scan(bin) unless DoroSettings.env[:testmode]   #avoid to stress VT if we are just testing
     @analysis_threads << Thread.new(bin.filename){
-      sleep 30 while !(guestvm = Insertdb.find_vm)  #guestvm struct: array ["sandbox id", "sandbox name", "ipaddress", "user", "password"]
+      db = Insertdb.new
+      sleep 30 while !(guestvm = db.find_vm)  #guestvm struct: array ["sandbox id", "sandbox name", "ipaddress", "user", "password"]
       analyze(bin, guestvm)
-      Insertdb.free_vm(guestvm[0])
+      db.free_vm(guestvm[0])
+      db.close
     }
   end
 end
@@ -67,18 +69,25 @@ end
 ###ANALYZE THE SOURCE
 def analyze(bin, guestvm)
 
+  #RESERVING AN ANALYSIS ID
+  db = Insertdb.new
+  anal_id = db.get_anal_id
+
   #source.each do |sname, sinfo|
 
   #Dir.chdir(sinfo[:dir])
 
   #set home vars
-  sample_home = DoroSettings.env[:analysis_dir] + "/#{bin.md5}"
+  sample_home = DoroSettings.env[:analysis_dir] + "/#{anal_id}"
+  bin.dir_bin = "#{sample_home}/bin/"
+  bin.dir_pcap = "#{sample_home}/pcap/"
+  bin.dir_screens = "#{sample_home}/screens/"
+  bin.dir_downloads = "#{sample_home}/downloads/"
 
 
   LOGGER.info "SANDBOX", "VM#{guestvm[0]} ".yellow + "Analyzing binary #{bin.filename}"
 
   begin
-
     #crate dir structure in analisys home
     if !File.directory?(sample_home)
       LOGGER.info "MAM","VM#{guestvm[0]} ".yellow + "Creating DIRS"
@@ -96,7 +105,7 @@ def analyze(bin, guestvm)
       end
 
     else
-      LOGGER.warn "SANDBOX","Malware #{bin.md5} sample_home already present, is this binary has been already analyzed? Skipping.."
+      LOGGER.warn "SANDBOX","Malware #{bin.md5} sample_home already present, WTF!? Skipping.."
       #print "\n"
       return false
     end
@@ -220,17 +229,18 @@ def analyze(bin, guestvm)
 
     LOGGER.debug "NAM", "VM#{guestvm[0]} ".yellow + "Pcaprid: " + pcaprid if VERBOSE
 
+    empty_pcap = false
 
     if dump.size <= 30
       LOGGER.warn "NAM", "VM#{guestvm[0]} WARNING - EMPTY PCAP FILE!!!! ::.."
       #FileUtils.rm_r(sample_home)
-      return false
+      empty_pcap = true
     end
 
     dumpvalues = [dump.sha, dump.size, pcaprid, pcapfile, 'false']
-    analysis_values = ["default", bin.sha, guestvm[0], dump.sha, get_time]
+    analysis_values = [anal_id, bin.sha, guestvm[0], dump.sha, get_time]
 
-    if pcaprid.nil? || dump.dir_pcap.nil? || bin.sha.nil? || bin.md5.nil?
+    if pcaprid.nil? || bin.dir_pcap.nil? || bin.sha.nil? || bin.md5.nil?
       LOGGER.error "SANDBOX", "VM#{guestvm[0]} Can't retrieve the required information"
       FileUtils.rm_r(sample_home)
       return false
@@ -239,15 +249,20 @@ def analyze(bin, guestvm)
 
     LOGGER.debug "DB", "VM#{guestvm[0]} Database insert phase" if VERBOSE
 
+    db = Insertdb.new
+    db.begin_t  #needed for rollbacks
 
-    unless Insertdb.insert("traffic_dumps", dumpvalues)
-      LOGGER.fatal "DB", "VM#{guestvm[0]} Error while inserting data into table traffic_dumps. Skipping binary #{bin.md5}"
-      FileUtils.rm_r(sample_home)
-      return false
+    unless empty_pcap
+      unless db.insert("traffic_dumps", dumpvalues)
+        LOGGER.fatal "DB", "VM#{guestvm[0]} Error while inserting data into table traffic_dumps. Skipping binary #{bin.md5}"
+        FileUtils.rm_r(sample_home)
+        return false
+      end
     end
 
 
-    unless Insertdb.insert("analyses", analysis_values)
+
+    unless db.insert("analyses", analysis_values)
       LOGGER.fatal "DB", "VM#{guestvm[0]} Error while inserting data into table analyses. Skipping binary #{bin.md5}"
       FileUtils.rm_r(sample_home)
       return false
@@ -258,16 +273,14 @@ def analyze(bin, guestvm)
 
     #puts "Done, commit changes?"
     #gets
+    #puts Insertdb.status
 
-    Insertdb.commit
-    Insertdb.close
+    db.commit
+    db.close
 
     LOGGER.info "MAM", "VM#{guestvm[0]} ".yellow + "Removing file from /bins directory"
     FileUtils.rm(bin.binpath)
-
     #puts "[MAM]VM#{guestvm[0]} ".yellow + "Releasing virtual machine #{guestvm}"
-
-
     LOGGER.info "MAM", "VM#{guestvm[0]} ".yellow + "Process compleated successfully"
 
   rescue => e
@@ -276,7 +289,7 @@ def analyze(bin, guestvm)
     LOGGER.error "Dorothy" , "#{$!}\n #{e.inspect} \n #{e.backtrace}" if VERBOSE
 
     FileUtils.rm_r(sample_home)
-    Insertdb.rollback unless Insertdb.nil?  #rollback in case there is a transaction on going
+    db.rollback unless db.nil?  #rollback in case there is a transaction on going
     return false
   end
 
@@ -312,9 +325,13 @@ def scan(bin)
 
     LOGGER.info "VTOTAL", "Updating DB"
     vtvalues = [bin.sha, vt.family, vt.vendor, vt.version, vt.rate, vt.updated, vt.detected]
+    db = Insertdb.new
+    db.begin
     begin
-      Insertdb.insert("malwares", vtvalues)
+      db.insert("malwares", vtvalues)
+      db.close
     rescue
+      db.rollback
       LOGGER.error "VTOTAL", "Error while inserting values in malware table"
     end
 
@@ -331,6 +348,7 @@ end
 
 def self.start(source=nil, daemon=nil)
 
+  @db = Insertdb.new
   daemon ||= false
 
   puts "[Dorothy]".yellow +  " Process Started"
@@ -349,8 +367,6 @@ def self.start(source=nil, daemon=nil)
 
   #Creating a new NAM object for managing the sniffer
   @nam = DorothyNAM.new(DoroSettings.nam)
-  #Insertdb.connect
-  Insertdb.begin_t  #needed for rollbacks
 
   @vtotal_threads = []
   @vtotal_threads = []
@@ -359,7 +375,7 @@ def self.start(source=nil, daemon=nil)
   infinite = true
 
   #be sure that all the vm are available by forcing their release
-  Insertdb.vm_init
+  @db.vm_init
 
   if source # a source has been specified
     while infinite  #infinite loop
@@ -384,7 +400,7 @@ def self.start(source=nil, daemon=nil)
     end
   end
 
-
+  @db.close
 
 end
 

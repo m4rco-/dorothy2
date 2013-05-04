@@ -229,15 +229,17 @@ module Dorothy
         values.insert(0, "default")
         values.insert(1, sbox)
         values.push("default")
-        Insertdb.connect
-        Insertdb.begin_t
-        if !Insertdb.insert("sandboxes", values)             #no it isn't, insert it
+
+        db = Insertdb.new
+        db.begin_t
+
+        if !db.insert("sandboxes", values)             #no it isn't, insert it
           LOGGER.fatal "BFM", " ERROR-DB, please redo the operation"
-          Insertdb.rollback
+          db.rollback
           next
         else
-          Insertdb.commit
-          Insertdb.close
+          db.commit
+          db.close
           LOGGER.info "INIT", "Sandboxes correctly inserted into the database"
         end
 

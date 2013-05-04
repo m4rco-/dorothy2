@@ -45,7 +45,8 @@ class DorothyMAM
       RestClient.put(url, file)
 
     rescue RbVmomi::Fault
-      abort "Fail to copy the file #{file} to #{@vm}: #{$!}"
+      LOGGER.error "MAM", "Fail to copy the file #{file} to #{@vm}: #{$!}"
+      abort
     end
 
   end
@@ -55,7 +56,7 @@ class DorothyMAM
 
     if dll
       cmd = { :programPath => "C:\\windows\\system32\\rundll32.exe", :arguments => filepath}
-      LOGGER.info ".:: Executing dll #{filename}"
+      LOGGER.info "MAM", ".:: Executing dll #{filename}"
 
     else
       cmd = { :programPath => filepath, :arguments => "" }
@@ -112,10 +113,10 @@ class Loadmalw
   attr_accessor :sourceinfo   #used for storing info about where the binary come from (if needed)
 
   #	attr_accessor :dir_home
-  attr_reader :dir_pcap
-  attr_reader :dir_bin
-  attr_reader :dir_screens
-  attr_reader :dir_downloads
+  attr_accessor :dir_pcap
+  attr_accessor :dir_bin
+  attr_accessor :dir_screens
+  attr_accessor :dir_downloads
 
   def initialize(file)
 
@@ -157,10 +158,10 @@ class Loadmalw
 
 
     @size = File.size(file)
-    @dir_pcap = "#{ANALYSIS_DIR}/#{@md5}/pcap/"
-    @dir_bin = "#{ANALYSIS_DIR}/#{@md5}/bin/"
-    @dir_screens = "#{ANALYSIS_DIR}/#{@md5}/screens/"
-    @dir_downloads = "#{ANALYSIS_DIR}/#{@md5}/downloads/"
+  #  @dir_pcap = "#{ANALYSIS_DIR}/#{@md5}/pcap/"
+  #  @dir_bin = "#{ANALYSIS_DIR}/#{@md5}/bin/"
+  #  @dir_screens = "#{ANALYSIS_DIR}/#{@md5}/screens/"
+  #  @dir_downloads = "#{ANALYSIS_DIR}/#{@md5}/downloads/"
   end
 
 

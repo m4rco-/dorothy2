@@ -27,11 +27,9 @@ module Dorothy
     end
   end
 
-  module Insertdb
+  class Insertdb
 
-    extend self
-
-    def connect
+    def initialize
       @db = PGconn.open(:host=> DoroSettings.dorothive[:dbhost], :dbname=>DoroSettings.dorothive[:dbname], :user=>DoroSettings.dorothive[:dbuser], :password=>DoroSettings.dorothive[:dbpass])
     end
 
@@ -41,6 +39,10 @@ module Dorothy
 
     def commit
       @db.exec("COMMIT")
+    end
+
+    def status
+      @db.transaction_status
     end
 
     def close
@@ -130,6 +132,10 @@ module Dorothy
       return chk
     end
 
+    def get_anal_id
+      @db.exec("SELECT nextval('dorothy.analyses_id_seq')").first["nextval"].to_i
+    end
+
     def self.escape_bytea(data)
       escaped = PGconn.escape_bytea data
       return escaped
@@ -174,7 +180,7 @@ module Dorothy
     def find_vm
       vm = @db.exec("SELECT id, hostname, ipaddress, username, password FROM dorothy.sandboxes where is_available is true").first
       if vm.nil?
-        LOGGER.warn "DB"," At this time there are no free VM available"
+        LOGGER.warn "DB","At this time there are no free VM available"
         return false
       else
         @db.exec("UPDATE dorothy.sandboxes set is_available = false where id = '#{vm["id"]}'")
@@ -187,7 +193,7 @@ module Dorothy
       if !r.first.nil? #check if the issued VM is already free
         begin
           @db.exec("UPDATE dorothy.sandboxes set is_available = true where id = '#{vmid}'")
-          LOGGER.info "DB", " VM #{vmid} succesfully released"
+          LOGGER.info "DB", "VM #{vmid} succesfully released"
           return true
         rescue
           LOGGER.error "DB", "An error occurred while releasing the VM"
@@ -195,14 +201,14 @@ module Dorothy
           return false
         end
       else
-        LOGGER.warn "DB", " Dorothy is trying to release the VM #{vmid} that is already available!!"
+        LOGGER.warn "DB", "Dorothy is trying to release the VM #{vmid} that is already available!!"
         return false
       end
     end
 
     def vm_init
       @db.exec("UPDATE dorothy.sandboxes set is_available = true")
-      LOGGER.debug "DB", " All VM are now available"
+      LOGGER.debug "DB", "All VM are now available"
       #TODO - revert them too?
     end
 
