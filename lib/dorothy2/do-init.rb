@@ -1,3 +1,7 @@
+# Copyright (C) 2013 marco riccardi.
+# This file is part of Dorothy - http://www.honeynet.it/dorothy
+# See the file 'LICENSE' for copying permission.
+
 module Dorothy
 
   module DoroConfig
@@ -45,10 +49,11 @@ module Dorothy
 
         puts "Dorothy Environment settings"
 
-        home = File.expand_path("..",Dir.pwd)
+        puts "Please insert the home folder for dorothy [#{HOME}]"
+        conf["env"]["home"] = (t = gets.chop).empty? ? HOME : t
+
         puts "The Dorothy home directory is #{home}"
 
-        conf["env"]["home"] = home
         conf["env"]["pidfile"] = "#{home}/var/dorothy.pid"
         conf["env"]["pidfile_parser"] = "#{home}/var/doroParser.pid"
         conf["env"]["analysis_dir"] = "#{home}/opt/analyzed"   # TODO if doesn't exist, create it. -> Dir.mkdir("mynewdir")
@@ -233,8 +238,11 @@ module Dorothy
         db = Insertdb.new
         db.begin_t
 
+        LOGGER.warn "INIT", "Waring, the SandBox table is gonna be flushed, and updated with the new file"
+        db.flush_table("sandboxes")
+
         if !db.insert("sandboxes", values)             #no it isn't, insert it
-          LOGGER.fatal "BFM", " ERROR-DB, please redo the operation"
+          LOGGER.fatal "INIT", " ERROR-DB, please redo the operation"
           db.rollback
           next
         else

@@ -1520,15 +1520,6 @@ ALTER TABLE ONLY sandboxes
 ALTER TABLE ONLY sensors
     ADD CONSTRAINT sensors_pkey PRIMARY KEY (id);
 
-
---
--- Name: sightings_pk; Type: CONSTRAINT; Schema: dorothy; Owner: postgres; Tablespace: 
---
-
-ALTER TABLE ONLY sightings
-    ADD CONSTRAINT sightings_pk PRIMARY KEY (sample, sensor, date);
-
-
 --
 -- Name: traffic_dumps_pkey; Type: CONSTRAINT; Schema: dorothy; Owner: postgres; Tablespace: 
 --

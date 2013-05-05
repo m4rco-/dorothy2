@@ -19,7 +19,7 @@
 ---
 malwarefolder:
     type: system
-    localdir: /Users/akira/Codes/dorothy-gem-try/dorothy2/opt/bins/manual
+    localdir: /Users/m4rco/dorothy2/opt/bins/manual
     typeid: 2
 honeypot1:
     type: ssh

@@ -1,12 +1,15 @@
 #!/usr/bin/env ruby
 
-#libdir = File.dirname(__FILE__) + "./lib"
-#libdir = File.expand_path(libdir)
-#$: << libdir
+# Copyright (C) 2013 marco riccardi.
+# This file is part of Dorothy - http://www.honeynet.it/dorothy
+# See the file 'LICENSE' for copying permission.
 
 require 'rubygems'
-#require 'trollop'
-require '../lib/doroParser'
+require 'trollop'
+require 'dorothy2'
+require 'doroParser'
+
+#load '../lib/doroParser'
 
 include DoroEnv
 include DoroParser

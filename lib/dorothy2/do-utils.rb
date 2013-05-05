@@ -1,4 +1,6 @@
-#Class with some snippets
+# Copyright (C) 2013 marco riccardi.
+# This file is part of Dorothy - http://www.honeynet.it/dorothy
+# See the file 'LICENSE' for copying permission.
 
 module Dorothy
 
@@ -12,6 +14,25 @@ module Dorothy
 
     def exists?(file)
       File.exist?(file)
+    end
+
+    def init_db(force=false)
+      LOGGER.warn "DB", "The database is going to be initialized, all the data present will be lost. Continue?(write yes)"
+      answ = "yes"
+      answ = gets.chop unless force
+
+      if answ == "yes"
+        begin
+          #ugly, I know, but couldn't find a better and easier way..
+          raise 'An error occurred' unless system "psql -h #{DoroSettings.dorothive[:dbhost]} -U #{DoroSettings.dorothive[:dbuser]} -f #{DoroSettings.dorothive[:ddl]}"
+          LOGGER.info "DB", "Database correctly initialized."
+        rescue => e
+          LOGGER.error "DB", $!
+          LOGGER.debug "DB", e.inspect
+        end
+      else
+        LOGGER.error "DB", "Database untouched, quitting."
+      end
     end
 
   end
@@ -54,25 +75,6 @@ module Dorothy
       @db.exec("ROLLBACK")
     end
 
-    def init_db(force=false)
-      LOGGER.warn "DB", "The database is going to be initialized, all the data present will be lost. Continue?(write yes)"
-      answ = "yes"
-      answ = gets.chop unless force
-
-      if answ == "yes"
-        begin
-          #ugly, I know, but couldn't find a better and easier way..
-          raise 'An error occurred' unless system "psql -h #{DoroSettings.dorothive[:dbhost]} -U #{DoroSettings.dorothive[:dbuser]} -f #{DoroSettings.dorothive[:ddl]}"
-          LOGGER.info "DB", "Database correctly initialized."
-        rescue => e
-          LOGGER.error "DB", $!
-          LOGGER.debug "DB", e.inspect
-        end
-      else
-        LOGGER.error "DB", "Database untouched, quitting."
-        exit(0)
-      end
-    end
 
     def insert(table,values)
       n = 1
@@ -155,6 +157,10 @@ module Dorothy
 
     def find_seq(seq)
       @db.exec("SELECT currval('dorothy.#{seq}')")
+    end
+
+    def flush_table(table)
+      @db.exec("TRUNCATE dorothy.#{table} CASCADE")
     end
 
     def malware_list

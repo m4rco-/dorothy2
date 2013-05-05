@@ -1,3 +1,7 @@
+# Copyright (C) 2013 marco riccardi.
+# This file is part of Dorothy - http://www.honeynet.it/dorothy
+# See the file 'LICENSE' for copying permission.
+
 ##for irb debug:
 ##from $home, irb and :
 ##load 'lib/dorothy2.rb'; include Dorothy; LOGGER = DoroLogger.new(STDOUT, "weekly"); DoroSettings.load!('etc/dorothy.yml')

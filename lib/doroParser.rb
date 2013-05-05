@@ -1,3 +1,7 @@
+# Copyright (C) 2013 marco riccardi.
+# This file is part of Dorothy - http://www.honeynet.it/dorothy
+# See the file 'LICENSE' for copying permission.
+
 #!/usr/local/bin/ruby
 #$LOAD_PATH.unshift '/opt/local/lib/ruby/gems/1.8/gems/ruby-filemagic-0.4.2/lib'  #for MACOSX
 $LOAD_PATH.unshift '/usr/lib/ruby/gems/1.8/gems/ruby-filemagic-0.4.2/lib'		  #for linux Debian

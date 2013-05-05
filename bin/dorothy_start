@@ -1,34 +1,43 @@
 #!/usr/bin/env ruby
 
+# Copyright (C) 2013 marco riccardi.
+# This file is part of Dorothy - http://www.honeynet.it/dorothy
+# See the file 'LICENSE' for copying permission.
+
 require 'rubygems'
 require 'trollop'
 require 'dorothy2'          #comment for testing/developmnet
 
 #load '../lib/dorothy2.rb'  #uncomment for testing/developmnet
 
-include DoroEnv
 include Dorothy
 
 
 opts = Trollop.options do
   banner <<-EOS
 
-	The Dorothy Malware Analysis Framework 2.0
+   ####################################################
+   ##                                                ##
+   ##  The Dorothy Malware Analysis Framework 2.0    ##
+   ##                                                ##
+   ####################################################
 
-  marco.riccardi@
-	www.honeynet.it
+        marco.riccardi@honeynet.it
+	www.honeynet.it/dorothy
 
 
 	Usage:
-	Manager.rb [options]
+  dorothy_start [options]
 	where [options] are:
   EOS
 
 
   opt :verbose, "Enable verbose mode"
   opt :infoflow, "Print the analysis flow"
-  opt :source, "Choose a source (manual|honeypot|ztracker)", :type => :string
+  opt :source, "Choose a source (from the ones defined in etc/sources.yml)", :type => :string
   opt :daemon, "Stay in the backround, by constantly pooling datasources"
+  opt :SandboxUpdate, "Update Dorothive with the new Sandbox file"
+  opt :DorothiveInit, "(RE)Install the Dorothy Database (Dorothive)"
 
 end
 
@@ -41,23 +50,34 @@ if opts[:infoflow]
 	#2) Copy File to VM
 	#3) Start Sniffer
 	#4) Execute file into VM
-	#5) Make screenshop
+	#5) Make screenshot
 	#6) Wait X minutes (configure X in the conf file)
 	#7) Stop Sniffer
 	#8) Download Screenshot and trafficdump
 	#9) Try to retreive malware info from VirusTotal
-	#10) Insert data to Dorothy-DB
+	#10) Insert data into Dorothy-DB
 	------------------------------------------
 	"
   exit(0)
 end
 
+puts "
+
+   ####################################################
+   ##                                                ##
+   ##  The Dorothy Malware Analysis Framework 2.0    ##
+   ##                                                ##
+   ####################################################
+
+"
+
 #VARS
+HOME = File.expand_path("..",File.dirname(__FILE__))
 VERBOSE = (opts[:verbose] ? true : false)
 daemon = (opts[:daemon] ? true : false)
 
 #DEFAULT CONF FILES
-conf = '../etc/dorothy.yml'
+conf = HOME + '/etc/dorothy.yml'
 
 #LOAD ENV
 Util.exists?(conf) ? DoroSettings.load!(conf) : DoroConfig.create
@@ -71,12 +91,38 @@ LOGGER = DoroLogger.new(logout, DoroSettings.env[:logage])
 LOGGER.sev_threshold = DoroSettings.env[:loglevel]
 
 #INIT DB Connector
-db = Insertdb.new
+begin
+  db = Insertdb.new
+rescue => e
+  if e.inspect =~ /exist/
+    puts "WARNING".yellow + " The database doesn't exist yet. Press Enter to load the ddl into the DB"
+    gets
+    Util.init_db(true)
+    exit(0)
+  else
+    puts "ERROR".red + " Can't connect to the database"
+    puts e
+    exit(0)
+  end
+end
+
+
+if opts[:DorothiveInit]
+  Util.init_db
+  exit(0)
+end
+
+if opts[:SandboxUpdate]
+  puts "[Dorothy]".yellow + " Loading #{sboxfile} into Dorothive"
+  DoroConfig.init_sandbox(sboxfile)
+  puts "[Dorothy]".yellow + " Done."
+  exit(0)
+end
 
 if Util.exists?(sfile)
   sources = YAML.load_file(sfile)
 else
-  puts "[WARNING]".red + " A source file doesn't exist, please crate one in the /etc folder" #TODO ..or specify another one in the args -S
+  puts "[WARNING]".red + " A source file doesn't exist, please crate one in the /etc folder"
   exit(0)
 end
 

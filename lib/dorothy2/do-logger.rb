@@ -1,3 +1,6 @@
+# Copyright (C) 2013 marco riccardi.
+# This file is part of Dorothy - http://www.honeynet.it/dorothy
+# See the file 'LICENSE' for copying permission.
 
 module Dorothy
 #The original Logger has a little bug that prevent me to add the progname while using warn,error,etc methods
