@@ -140,8 +140,9 @@ module Dorothy
         t = gets.chop
         if t.empty? || t == "y" || t == "yes"
           File.open("#{File.expand_path("~")}/.dorothy.yml", 'w+') {|f| f.write(conf.to_yaml) }
+          FileUtils.ln_s("#{File.expand_path("~")}/.dorothy.yml", "#{home}/etc/dorothy.yml")
           correct = true
-          puts "Configuration file has been saved in #{home}/etc/dorothy.conf\nYou can either modify such file directly. Enjoy!"
+          puts "Configuration file has been saved in ~/.dorothy.conf and a symlink has been created in\n#{home}/etc/dorothy.yml for an easier edit. You can either modify such file directly.\nNow you can restart dorothy, enjoy!"
         else
           puts "Please reinsert the info"
           correct = false
