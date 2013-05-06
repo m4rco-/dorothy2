@@ -6,9 +6,9 @@
 
 require 'rubygems'
 require 'trollop'
-require 'dorothy2'          #comment for testing/developmnet
+#require 'dorothy2'          #comment for testing/developmnet
 
-#load '../lib/dorothy2.rb'  #uncomment for testing/developmnet
+load '../lib/dorothy2.rb'  #uncomment for testing/developmnet
 
 include Dorothy
 
@@ -77,10 +77,17 @@ VERBOSE = (opts[:verbose] ? true : false)
 daemon = (opts[:daemon] ? true : false)
 
 #DEFAULT CONF FILES
-conf = HOME + '/etc/dorothy.yml'
+#conf = HOME + '/etc/dorothy.yml'
+
+conf = "#{File.expand_path("~")}/.dorothy.yml"
 
 #LOAD ENV
-Util.exists?(conf) ? DoroSettings.load!(conf) : DoroConfig.create
+if Util.exists?(conf)
+  DoroSettings.load!(conf)
+  else
+  DoroConfig.create
+  exit(0)
+end
 
 sfile = DoroSettings.env[:home] + '/etc/sources.yml'
 sboxfile = DoroSettings.env[:home] + '/etc/sandboxes.yml'

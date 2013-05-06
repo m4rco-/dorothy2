@@ -52,6 +52,8 @@ module Dorothy
         puts "Please insert the home folder for dorothy [#{HOME}]"
         conf["env"]["home"] = (t = gets.chop).empty? ? HOME : t
 
+        home = conf["env"]["home"]
+
         puts "The Dorothy home directory is #{home}"
 
         conf["env"]["pidfile"] = "#{home}/var/dorothy.pid"
@@ -137,7 +139,7 @@ module Dorothy
 
         t = gets.chop
         if t.empty? || t == "y" || t == "yes"
-          File.open("#{home}/etc/dorothy.yml", 'w+') {|f| f.write(conf.to_yaml) }
+          File.open("#{File.expand_path("~")}/.dorothy.yml", 'w+') {|f| f.write(conf.to_yaml) }
           correct = true
           puts "Configuration file has been saved in #{home}/etc/dorothy.conf\nYou can either modify such file directly. Enjoy!"
         else

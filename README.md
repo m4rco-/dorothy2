@@ -27,7 +27,7 @@ Dorothy needs the following software (not expressly in the same host) in order t
 It is raccommended to follow this step2step process:
 
 1. Set your ESX environment
-2. Install Postgres >= 9.0
+2. Install the required software
 3. Install Dorothy and libmagic libraries
 4. Start Dorothy, and configure it
 5. Use Dorothy
@@ -67,27 +67,34 @@ It is raccommended to follow this step2step process:
      > to avoid interactive authentication.
 
 
-### 2. Install Postgres >= 9.0
-1. Install Postgress
+### 2. Install the required sofware
 
-        $sudo apt-get install pg
+
+1. Install postgres
+
+        $sudo apt-get install postgresql-9.1
 or
 
         http://www.postgresql.org/download/
 
-2. Configure a dedicated user for Dorothy (or use root user instead, up to you :)
+2. Configure a dedicated postgres user for Dorothy (or use root user instead, up to you :)
+
+3. Install the following packages
+
+        $sudo apt-get install ruby1.8 rubygems postgresql-server-dev-9.1 libxml2-dev  libxslt1-dev libmagic-dev
+
+>For OSX users: all the above software are available through mac ports. A tip for libmagic: use brew instead:
+>
+        $ brew install libmagic
+        $ brew link libmagic
 
 Add a user dedicated to dorothy (or use the root one, up to you :)
 
-### 3. Install Dorothy and libmagic libraries
+### 3. Install Dorothy gem
 
-1.    Install Dorothy gem
+*Install Dorothy gem
 
         $ gem install dorothy2
-2. Install libmagic ruby libraries
-
-        $ brew install libmagic
-        $ brew link libmagic
 
 ### 4. Start Dorothy, and configure it!
 
