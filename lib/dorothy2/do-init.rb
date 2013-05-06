@@ -119,6 +119,8 @@ module Dorothy
         puts "Please insert the information of the host that you will use for sniffing the Sandbox traffic"
         puts "IP Addres:"
         conf["nam"]["host"] = gets.chop
+        puts "Network interface for the network sniffing: [eth0]"
+        conf["nam"]["interface"] = (t = gets.chop).empty? ? "eth0" : t
         puts "Username [dorothy] :"
         conf["nam"]["port"] = (t = gets.chop).empty? ? "22" : t
         puts "Password:"

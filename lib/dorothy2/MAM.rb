@@ -193,10 +193,10 @@ class DorothyNAM    #Change to Module!??
     @port = namdata[:port]
   end
 
-  def start_sniffer(vmaddress, name, pcaphome)
+  def start_sniffer(vmaddress, interface, name, pcaphome)
       Net::SSH.start(@server, @user, :password => @pass, :port =>@port) do |@ssh|
      # @ssh.exec "nohup sudo tcpdump -i eth0 -s 1514 -w ~/pcaps/#{name}.pcap host #{vmaddress} > blah.log 2>&1 & "
-      @ssh.exec "nohup sudo tcpdump -i en0 -s 1514 -w #{pcaphome}/#{name}.pcap host #{vmaddress} > blah.log 2>&1 & "
+      @ssh.exec "nohup sudo tcpdump -i #{interface} -s 1514 -w #{pcaphome}/#{name}.pcap host #{vmaddress} > log.tmp 2>&1 & "
       t = @ssh.exec!"ps aux |grep #{vmaddress}|grep -v grep|grep -v bash"
       #puts "MAM Process GREP: " + t
       pid = t.split(" ")[1]

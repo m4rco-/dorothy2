@@ -151,7 +151,7 @@ def analyze(bin, guestvm)
 
     #Start Sniffer
     dumpname = bin.md5
-    pid = @nam.start_sniffer(guestvm[2],dumpname, DoroSettings.nam[:pcaphome]) #dumpname = vmfile.pcap
+    pid = @nam.start_sniffer(guestvm[2],DoroSettings.nam[:interface], dumpname, DoroSettings.nam[:pcaphome]) #dumpname = vmfile.pcap
     LOGGER.info "NAM","VM#{guestvm[0]} ".yellow + "Start sniffing module"
     LOGGER.debug "NAM","VM#{guestvm[0]} ".yellow + "Tcpdump instance #{pid} started" if VERBOSE
 

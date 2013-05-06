@@ -27,6 +27,7 @@ Dorothy needs the following software (not expressly in the same host) in order t
 It is raccommended to follow this step2step process:
 
 1. Set your ESX environment
+  * Sample setup
 2. Install the required software
 3. Install Dorothy and libmagic libraries
 4. Start Dorothy, and configure it
@@ -38,15 +39,19 @@ It is raccommended to follow this step2step process:
 
             Configuration->Security Profile->Services->Proprieties->SSH->Options->Start and Stop with host->Start->OK
 
-2. Configure the Windows VMs used for sandboxing
+2. Configure two separate virtual networks, one dedicated exclusively to the SandBoxes (See Sample Setups)
+
+3. Configure the Windows VMs used for sandboxing
  * Create a test_ping.bat file into C:\ folder, with the following content:
 
             ping -n 1 google.com
 >This file will be used for checking if the VM has internet access. You can substitute "google.com" with whatever host you like. Just a suggestion: use hostnames instead of IP addresses. The aim of this test doesn't care if the DNS is not resolving, or the IP addresses is unreachable. It cares only if *everything* works.
 
  * Disable Windows firewall (preferred)
- * VMWare Tools must be installed in the Guest system.
+ * VMWare Tools must be installed in the Windows guest system.
 3. Configure the unix VM used by the NAM
+     * Configure two NICs on the virtual machine, one of the two will be used for the network sniffing purpose. Assign one NIC to the sandbox dedicated virtual network, and the other NIC the the other one.  
+
      * Install tcpdump and sudo
 
                 #apt-get install tcpdump sudo
@@ -60,12 +65,20 @@ It is raccommended to follow this step2step process:
                 add the following line:
                 dorothy  ALL = NOPASSWD: /usr/sbin/tcpdump, /bin/kill
 
-     * Add the pubblic key of the user who will execute Dorothy in /home/dorothy/.ssh/authorized_keys
+     * Configure the NIC connected to the sandbox's network in promisc mode
 
-     > Consider that you are going to execute Dorothy on your machine, and that HOST2 is the NAM. In order to access
-     > to NAM in an automatic mode, Dorothy needs to authenticate to HOST2's ssh service through its public key in order
-     > to avoid interactive authentication.
+#### * Sample Setups
+1. Basic setup
+> In the following example, the Dorothy gem is installed in the same host where Dorothive (the DB) resides.
+> This setup is strongly recommended
 
+    >![dorothy.basicsetup](http://www.honeynet.it/wp-content/uploads/2011/04/Dorothy-Basic.pdf)
+
+2. Advanced setup
+> This setup is recommended if Dorothy is going to be installed in a Corporate environment.
+> By levaraging a private VPN, all the sandbox traffics exits from the Corporate network with an external IP addresses.
+
+ >![dorothy.basicsetup](http://www.honeynet.it/wp-content/uploads/2011/04/Setup-Advanced.pdf)
 
 ### 2. Install the required sofware
 

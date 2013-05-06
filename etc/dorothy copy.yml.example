@@ -30,6 +30,7 @@ nam:
   namuser: dorothy
   pcaphome: ~/pcaps
   nampass: ""
+  interface: eth0
   namserver: ""
 virustotal: 
   vtapikey: "c37baad50a42d7df3f91e957255a2c6a9deabe339c2ff44d4a637fff912def48"
