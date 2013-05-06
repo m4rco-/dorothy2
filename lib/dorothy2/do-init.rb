@@ -91,7 +91,7 @@ module Dorothy
         puts "DB Password"
         conf["dorothive"]["dbpass"] = gets.chop
 
-        conf["dorothive"]["ddl"] = "#{home}/etc/ddl/dorothive.ddl"
+        conf["dorothive"]["ddl"] = "#{HOME}/etc/ddl/dorothive.ddl"
 
 
         ######################################################
