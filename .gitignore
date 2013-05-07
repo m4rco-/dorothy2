@@ -1,5 +1,6 @@
 *.gem
 *.rbc
+*.log
 .DS_Store
 .bundle
 .config
@@ -9,6 +10,8 @@ InstalledFiles
 _yardoc
 coverage
 doc/
+var/
+opt/
 lib/bundler/man
 pkg
 rdoc

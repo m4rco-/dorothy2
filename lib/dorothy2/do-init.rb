@@ -11,13 +11,17 @@ module Dorothy
     def init_home(home)
       puts "INIT".yellow + " Creating Directoy structure in #{home}"
       Dir.mkdir(home)
-      Dir.mkdir("#{home}/opt")
-      Dir.mkdir("#{home}/opt/bins")
-      Dir.mkdir("#{home}/opt/analyzed")
+      unless Utils.exists?("#{home}/opt")
+        Dir.mkdir("#{home}/opt")
+        Dir.mkdir("#{home}/opt/bins")
+        Dir.mkdir("#{home}/opt/analyzed")
+      end
       Dir.mkdir("#{home}/etc")
       Dir.mkdir("#{home}/etc/geo")
-      Dir.mkdir("#{home}/var")
-      Dir.mkdir("#{home}/var/log")
+      unless Utils.exists?("#{home}/var")
+        Dir.mkdir("#{home}/var")
+        Dir.mkdir("#{home}/var/log")
+      end
       puts "INIT".yellow + " Done"
     end
 

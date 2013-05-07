@@ -8,9 +8,9 @@
 
 require 'rubygems'
 require 'trollop'
-#require 'dorothy2'
+require 'dorothy2'
 
-load '../lib/dorothy2.rb'
+#load '../lib/dorothy2.rb'
 
 include Dorothy
 
