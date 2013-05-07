@@ -8,16 +8,20 @@
 
 require 'rubygems'
 require 'trollop'
-require 'dorothy2'
+#require 'dorothy2'
 
-#load '../lib/dorothy2.rb'
+load '../lib/dorothy2.rb'
 
 include Dorothy
 
+conf = "#{File.expand_path("~")}/.dorothy.yml"
+DoroSettings.load!(conf)
 
 #Logging
-LOGGER = DoroLogger.new(LOGFILE, LOGAGE)
-LOGGER.sev_threshold = LOGLEVEL
+
+LOGGER = DoroLogger.new(DoroSettings.env[:logfile], DoroSettings.env[:logage])
+LOGGER.sev_threshold = DoroSettings.env[:loglevel]
+
 
 Dorothy.stop
 

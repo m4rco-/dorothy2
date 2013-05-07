@@ -64,7 +64,9 @@ def check_support(bin)
     true
     else
     LOGGER.warn("SANDBOX", "File #{bin.filename} actually not supported, skipping\n" + "	Filtype: #{bin.type}") # if VERBOSE
-    FileUtils.cp(bin.binpath,File.dirname(bin.binpath) + "/not_supported") #mv?
+    dir_not_supported = File.dirname(bin.binpath) + "/not_supported"
+    Dir.mkdir(dir_not_supported) unless Dir.exists?(dir_not_supported)
+    FileUtils.cp(bin.binpath,dir_not_supported) #mv?
     FileUtils.rm(bin.binpath) ## mv?
     return false
   end
@@ -361,11 +363,11 @@ def self.start(source=nil, daemon=nil)
   LOGGER.info "Dorothy", "Started".yellow
 
   if daemon
-    check_pid_file PIDFILE
+    check_pid_file DoroSettings.env[:pidfile]
     puts "[Dorothy]".yellow + " Going in backround with pid #{Process.pid}"
-    puts "[Dorothy]".yellow + " Logging on #{LOGFILE}"
+    puts "[Dorothy]".yellow + " Logging on #{DoroSettings.env[:logfile]}"
     Process.daemon
-    create_pid_file PIDFILE
+    create_pid_file DoroSettings.env[:pidfile]
     LOGGER.info "Dorothy", "Going in backround with pid #{Process.pid}"
   end
 
@@ -392,9 +394,9 @@ def self.start(source=nil, daemon=nil)
     end
   else  # no sources specified, analyze all of them
     while infinite  #infinite loop
-      SOURCES.each do |sname, sinfo|
-        selected_source = Hash[SOURCES.select {|k,v| k == sname}]
-        dfm = DorothyFetcher.new(selected_source)
+      sources = YAML.load_file(DoroSettings.env[:home] + '/etc/sources.yml')
+      sources.keys.each do |sname|
+        dfm = DorothyFetcher.new(sources[sname])
         start_analysis(dfm.bins, daemon)
       end
       infinite = daemon #exit if wasn't set
@@ -455,7 +457,7 @@ end
 # and shutdown cleanly.
 def self.stop
   LOGGER.info "Dorothy", "Shutting down."
-  pid_file = PIDFILE
+  pid_file = DoroSettings.env[:pidfile]
   if pid_file and File.exist? pid_file
     pid = Integer(File.read(pid_file))
     Process.kill -15, -pid

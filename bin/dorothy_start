@@ -89,13 +89,19 @@ if Util.exists?(conf)
   exit(0)
 end
 
-sfile = DoroSettings.env[:home] + '/etc/sources.yml'
-sboxfile = DoroSettings.env[:home] + '/etc/sandboxes.yml'
-
 #Logging
 logout = (daemon ? DoroSettings.env[:logfile] : STDOUT)
 LOGGER = DoroLogger.new(logout, DoroSettings.env[:logage])
 LOGGER.sev_threshold = DoroSettings.env[:loglevel]
+
+home = DoroSettings.env[:home]
+#check homefolder
+unless Util.exists?(home)
+  DoroConfig.init_home(home)
+end
+
+sfile = home + '/etc/sources.yml'
+sboxfile = home + '/etc/sandboxes.yml'
 
 #INIT DB Connector
 begin
@@ -128,6 +134,13 @@ end
 
 if Util.exists?(sfile)
   sources = YAML.load_file(sfile)
+  #check if all the source directories exist
+  sources.keys.each do |s|
+    unless Util.exists?("#{sources[s]["localdir"]}")
+      LOGGER.warn "INIT", "Warning, the source's localdir #{s} doesn't exist yet, I'm going to create it"
+      Dir.mkdir("#{sources[s]["localdir"]}")
+    end
+  end
 else
   puts "[WARNING]".red + " A source file doesn't exist, please crate one in the /etc folder"
   exit(0)
@@ -135,7 +148,7 @@ end
 
 unless Util.exists?(sboxfile)
   puts "[WARNING]".red + " There is no sandbox configured yet. Please do it now"
-  DoroConfig.create_sandbox
+  DoroConfig.create_sandbox(sboxfile)
   DoroConfig.init_sandbox(sboxfile)
 end
 

@@ -6,6 +6,13 @@ module Dorothy
 #The original Logger has a little bug that prevent me to add the progname while using warn,error,etc methods
 class DoroLogger < Logger
   def initialize(logdev, shift_age = 0, shift_size = 1048576)
+
+    if logdev != STDOUT
+      unless Util.exists? logdev
+        FileUtils.touch(logdev)
+      end
+    end
+
     super(logdev, shift_age, shift_size)
     @formatter = proc do |severity, datetime, progname, msg|
       "[#{datetime.strftime('%d/%m/%Y %H:%M:%S')}] #{severity =~ /ERROR|FATAL/ ? severity.red : severity} [#{progname.yellow}] #{msg}\n"

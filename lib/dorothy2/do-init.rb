@@ -8,6 +8,19 @@ module Dorothy
 
     extend self
 
+    def init_home(home)
+      puts "INIT".yellow + " Creating Directoy structure in #{home}"
+      Dir.mkdir(home)
+      Dir.mkdir("#{home}/opt")
+      Dir.mkdir("#{home}/opt/bins")
+      Dir.mkdir("#{home}/opt/analyzed")
+      Dir.mkdir("#{home}/etc")
+      Dir.mkdir("#{home}/etc/geo")
+      Dir.mkdir("#{home}/var")
+      Dir.mkdir("#{home}/var/log")
+      puts "INIT".yellow + " Done"
+    end
+
     def create
 
       puts "
@@ -27,32 +40,24 @@ module Dorothy
         conf["virustotal"] = Hash.new
         conf["esx"] = Hash.new
 
-        #################################################
-        ###SANDBOX
-        ################################################
-
-        puts "Sandbox configuration settings"
-        puts "Insert the time (seconds) that the Sandbox should be run before it's reverted [60]"
-        conf["sandbox"]["sleeptime"] = (t = gets.chop).empty? ? 60 : t
-
-        puts "Insert the time (seconds) when Dorothy should take the first screenshot [1]"
-        conf["sandbox"]["screen1time"] = (t = gets.chop).empty? ? 1 : t
-
-        puts "Insert the time (seconds) when Dorothy should take the first screenshot [15]"
-        conf["sandbox"]["screen2time"] = (t = gets.chop).empty? ? 15 : t
-
-
 
         ################################################
         ###DOROTHY ENVIRONMENT
         ################################################
 
-        puts "Dorothy Environment settings"
+        puts "\n######### [" + " Dorothy Environment settings ".red + "] #########"
 
         puts "Please insert the home folder for dorothy [#{HOME}]"
         conf["env"]["home"] = (t = gets.chop).empty? ? HOME : t
 
         home = conf["env"]["home"]
+
+        unless Util.exists?(home)
+          self.init_home(home)
+        end
+
+
+
 
         puts "The Dorothy home directory is #{home}"
 
@@ -77,7 +82,7 @@ module Dorothy
         ###DOROTHIVE
         ######################################################
 
-        puts "Please insert the Dorothive (Dorothy DB) information"
+        puts "\n######### [" + " Dorothive (Dorothy DB) settings ".red + "] #########"
 
         puts "DB hostname/IP address [localhost]:"
         conf["dorothive"]["dbhost"] = (t = gets.chop).empty? ? "localhost" : t
@@ -98,6 +103,8 @@ module Dorothy
         ###ESX
         ######################################################
 
+        puts "######### [" + " ESX Environment settings ".red + "] #########"
+
         puts "Please insert the IP address of your ESX server"
         conf["esx"]["server"] = gets.chop
 
@@ -107,15 +114,27 @@ module Dorothy
         puts "Please insert the ESX password"
         conf["esx"]["pass"] = gets.chop
 
-        #puts "Sandbox Configuration"               #TODO -> insertdb
+        #################################################
+        ###SANDBOX
+        ################################################
 
+        puts "\n######### [" + " Sandbox configuration settings ".red + "] #########"
 
+        puts "Insert the time (seconds) that the Sandbox should be run before it's reverted [60]"
+        conf["sandbox"]["sleeptime"] = (t = gets.chop).empty? ? 60 : t
+
+        puts "Insert the time (seconds) when Dorothy should take the first screenshot [1]"
+        conf["sandbox"]["screen1time"] = (t = gets.chop).empty? ? 1 : t
+
+        puts "Insert the time (seconds) when Dorothy should take the first screenshot [15]"
+        conf["sandbox"]["screen2time"] = (t = gets.chop).empty? ? 15 : t
 
         ######################################################
         ###NAM
         ######################################################
 
-        puts "Network Analysis Module (NAM) configuration"
+        puts "\n######### [" + " Network Analysis Module (NAM) configuration ".red + "] #########"
+
         puts "Please insert the information of the host that you will use for sniffing the Sandbox traffic"
         puts "IP Addres:"
         conf["nam"]["host"] = gets.chop
@@ -133,10 +152,12 @@ module Dorothy
         ###VIRUS TOTAL
         ######################################################
 
-        puts "In order to retrieve Virus signatures, Dorothy needs to contact VirusTotal, please enter your VT API key here, if you don't have one yet, go here: "
+        puts "\n######### [" + " Virus Total API ".red + "] #########"
+
+        puts "In order to retrieve Virus signatures, Dorothy needs to contact VirusTotal,\n please enter your VT API key here, if you don't have one yet, go here (or press enter):\nhttps://www.virustotal.com/en/#dlg-join "
         conf["virustotal"]["vtapikey"] = gets.chop
 
-        puts "Configuration finished"
+        puts "\n######### [" + " Configuration finished ".yellow + "] #########"
         puts "Confirm? [y]"
 
         t = gets.chop
@@ -144,7 +165,8 @@ module Dorothy
           File.open("#{File.expand_path("~")}/.dorothy.yml", 'w+') {|f| f.write(conf.to_yaml) }
           FileUtils.ln_s("#{File.expand_path("~")}/.dorothy.yml", "#{home}/etc/dorothy.yml")
           correct = true
-          puts "Configuration file has been saved in ~/.dorothy.conf and a symlink has been created in\n#{home}/etc/dorothy.yml for an easier edit. You can either modify such file directly.\nNow you can restart dorothy, enjoy!"
+          puts "Configuration file has been saved in ~/.dorothy.conf and a symlink has been created in\n#{home}/etc/dorothy.yml for an easier edit. You can either modify such file directly."
+          puts "\n######### [" + " Now you can restart dorothy, enjoy! ".yellow + "] #########"
         else
           puts "Please reinsert the info"
           correct = false
@@ -154,7 +176,7 @@ module Dorothy
 
     end
 
-    def create_sandbox
+    def create_sandbox(sboxfile)
 
       correct = false
 
@@ -216,10 +238,9 @@ module Dorothy
         puts t
 
         if t.empty? || t == "y" || t == "yes"
-          home = File.expand_path("..",Dir.pwd)
-          File.open("#{home}/etc/sandboxes.yml", 'w+') {|f| f.write(conf.to_yaml) }
+          File.open(sboxfile, 'w+') {|f| f.write(conf.to_yaml) }
           correct = true
-          puts "Configuration file has been saved in #{home}/etc/sandboxes.yml\nYou can either modify such file directly. Enjoy!"
+          puts "Configuration file has been saved in #{sboxfile}\nYou can either modify such file directly. Enjoy!"
         else
           puts "Please reinsert the info"
           correct = false
@@ -227,8 +248,6 @@ module Dorothy
 
       end
     end
-
-
 
     #This method will populate the dorothive table sandboxes
     def init_sandbox(file="../etc/sandboxes.yml")

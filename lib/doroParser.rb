@@ -441,10 +441,10 @@ module DoroParser
     LOGGER_PARSER.info "Dorothy", "Started".yellow
 
     if daemon
-      check_pid_file PIDFILE_PARSER
+      check_pid_file DoroSettings.env[:pidfile]
       puts "[DoroParser]".yellow + " Going in backround with pid #{Process.pid}"
       Process.daemon
-      create_pid_file PIDFILE_PARSER
+      create_pid_file DoroSettings.env[:pidfile]
       LOGGER_PARSER.info "DoroParser", "Going in backround with pid #{Process.pid}"
     end
 
@@ -497,7 +497,7 @@ module DoroParser
   # and shutdown cleanly.
   def self.stop
     LOGGER_PARSER.info "DoroParser", "Shutting down.."
-    pid_file = PIDFILE_PARSER
+    pid_file = DoroSettings.env[:pidfile]
     if pid_file and File.exist? pid_file
       pid = Integer(File.read(pid_file))
       Process.kill -15, -pid
