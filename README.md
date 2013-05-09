@@ -107,7 +107,7 @@ Add a user dedicated to dorothy (or use the root one, up to you :)
 
 *Install Dorothy gem
 
-        $ gem install dorothy2
+        $ sudo gem install dorothy2
 
 ### 4. Start Dorothy, and configure it!
 

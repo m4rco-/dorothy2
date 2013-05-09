@@ -16,8 +16,10 @@ module Dorothy
         Dir.mkdir("#{home}/opt/bins")
         Dir.mkdir("#{home}/opt/analyzed")
       end
-      Dir.mkdir("#{home}/etc")
-      Dir.mkdir("#{home}/etc/geo")
+      unless Util.exists?("#{home}/etc")
+        Dir.mkdir("#{home}/etc")
+        Dir.mkdir("#{home}/etc/geo")
+      end
       unless Utils.exists?("#{home}/var")
         Dir.mkdir("#{home}/var")
         Dir.mkdir("#{home}/var/log")
