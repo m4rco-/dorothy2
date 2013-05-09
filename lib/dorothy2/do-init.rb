@@ -11,7 +11,7 @@ module Dorothy
     def init_home(home)
       puts "INIT".yellow + " Creating Directoy structure in #{home}"
       Dir.mkdir(home)
-      unless Utils.exists?("#{home}/opt")
+      unless Util.exists?("#{home}/opt")
         Dir.mkdir("#{home}/opt")
         Dir.mkdir("#{home}/opt/bins")
         Dir.mkdir("#{home}/opt/analyzed")
@@ -130,7 +130,7 @@ module Dorothy
         puts "Insert the time (seconds) when Dorothy should take the first screenshot [1]"
         conf["sandbox"]["screen1time"] = (t = gets.chop).empty? ? 1 : t
 
-        puts "Insert the time (seconds) when Dorothy should take the first screenshot [15]"
+        puts "Insert the time (seconds) when Dorothy should take the second screenshot [15]"
         conf["sandbox"]["screen2time"] = (t = gets.chop).empty? ? 15 : t
 
         ######################################################
@@ -140,7 +140,7 @@ module Dorothy
         puts "\n######### [" + " Network Analysis Module (NAM) configuration ".red + "] #########"
 
         puts "Please insert the information of the host that you will use for sniffing the Sandbox traffic"
-        puts "IP Addres:"
+        puts "IP Address:"
         conf["nam"]["host"] = gets.chop
         puts "Network interface for the network sniffing: [eth0]"
         conf["nam"]["interface"] = (t = gets.chop).empty? ? "eth0" : t
