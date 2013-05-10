@@ -20,7 +20,7 @@ module Dorothy
         Dir.mkdir("#{home}/etc")
         Dir.mkdir("#{home}/etc/geo")
       end
-      unless Utils.exists?("#{home}/var")
+      unless Util.exists?("#{home}/var")
         Dir.mkdir("#{home}/var")
         Dir.mkdir("#{home}/var/log")
       end
@@ -112,10 +112,10 @@ module Dorothy
         puts "######### [" + " ESX Environment settings ".red + "] #########"
 
         puts "Please insert the IP address of your ESX server"
-        conf["esx"]["server"] = gets.chop
+        conf["esx"]["host"] = gets.chop
 
         puts "Please insert the ESX username"
-        conf["esx"]["host"] = gets.chop
+        conf["esx"]["user"] = gets.chop
 
         puts "Please insert the ESX password"
         conf["esx"]["pass"] = gets.chop
@@ -142,14 +142,22 @@ module Dorothy
         puts "\n######### [" + " Network Analysis Module (NAM) configuration ".red + "] #########"
 
         puts "Please insert the information of the host that you will use for sniffing the Sandbox traffic"
+
         puts "IP Address:"
         conf["nam"]["host"] = gets.chop
+
         puts "Network interface for the network sniffing: [eth0]"
         conf["nam"]["interface"] = (t = gets.chop).empty? ? "eth0" : t
+
         puts "Username [dorothy] :"
-        conf["nam"]["port"] = (t = gets.chop).empty? ? "22" : t
+        conf["nam"]["user"] = (t = gets.chop).empty? ? "dorothy" : t
+
+        puts "SSH Port [22] :"
+        conf["nam"]["port"] = (t = gets.chop).empty? ? 22 : t
+
         puts "Password:"
         conf["nam"]["pass"] = gets.chop
+
         puts "Folder where to store PCAP files [~/pcaps]"
         conf["nam"]["pcaphome"] = (t = gets.chop).empty? ? "~/pcaps" : t
 
