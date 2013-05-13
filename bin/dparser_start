@@ -9,9 +9,8 @@ require 'trollop'
 require 'dorothy2'
 require 'doroParser'
 
-#load '../lib/doroParser'
+load '../lib/doroParser'
 
-include DoroEnv
 include DoroParser
 
 
@@ -45,11 +44,14 @@ NONETBIOS = opts[:nonetbios] ? true : false
 VERBOSE = opts[:verbose] ? true : false
 daemon = opts[:daemon] ? true : false
 
-#Logging
-LOGGER_PARSER = DoroLogger.new(LOGFILE_PARSER, LOGAGE)
-LOGGER_PARSER.sev_threshold = LOGLEVEL
 
-LOGGER = LOGGER_PARSER  #for do-utils
+conf = "#{File.expand_path("~")}/.dorothy.yml"
+DoroSettings.load!(conf)
+
+#Logging
+logout = (daemon ? DoroSettings.env[:logfile_parser] : STDOUT)
+LOGGER = DoroLogger.new(logout, DoroSettings.env[:logage])
+LOGGER.sev_threshold = DoroSettings.env[:loglevel]
 
 begin
   DoroParser.start daemon

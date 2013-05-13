@@ -44,7 +44,7 @@ def get_time
 end
 
 
-def start_analysis(bins, daemon)
+def start_analysis(bins)
   bins.each do |bin|
     next unless check_support(bin)
     scan(bin) unless DoroSettings.env[:testmode]   #avoid to stress VT if we are just testing
@@ -65,7 +65,7 @@ def check_support(bin)
     else
     LOGGER.warn("SANDBOX", "File #{bin.filename} actually not supported, skipping\n" + "	Filtype: #{bin.type}") # if VERBOSE
     dir_not_supported = File.dirname(bin.binpath) + "/not_supported"
-    Dir.mkdir(dir_not_supported) unless Dir.exists?(dir_not_supported)
+    Dir.mkdir(dir_not_supported) unless Utils.exists?(dir_not_supported)
     FileUtils.cp(bin.binpath,dir_not_supported) #mv?
     FileUtils.rm(bin.binpath) ## mv?
     return false
@@ -95,7 +95,7 @@ def analyze(bin, guestvm)
 
   begin
     #crate dir structure in analisys home
-    if !File.directory?(sample_home)
+    unless File.directory?(sample_home)
       LOGGER.info "MAM","VM#{guestvm[0]} ".yellow + "Creating DIRS"
       Dir.mkdir sample_home
       Dir.mkdir bin.dir_bin
@@ -222,6 +222,8 @@ def analyze(bin, guestvm)
     Ssh.download(DoroSettings.esx[:host],DoroSettings.esx[:user], DoroSettings.esx[:pass], @screenshot1, bin.dir_screens)
     Ssh.download(DoroSettings.esx[:host],DoroSettings.esx[:user], DoroSettings.esx[:pass], @screenshot2, bin.dir_screens)
 
+    #Put them to 644
+    File.chmod(0644, bin.dir_screens + File.basename(@screenshot1), bin.dir_screens + File.basename(@screenshot2) )
 
     #####################
     #UPDATE DOROTHIBE DB#
@@ -244,6 +246,7 @@ def analyze(bin, guestvm)
     end
 
     dumpvalues = [dump.sha, dump.size, pcaprid, pcapfile, 'false']
+    dump.sha = "EMPTYPCAP" if empty_pcap
     analysis_values = [anal_id, bin.sha, guestvm[0], dump.sha, get_time]
 
     if pcaprid.nil? || bin.dir_pcap.nil? || bin.sha.nil? || bin.md5.nil?
@@ -397,7 +400,7 @@ def self.start(source=nil, daemon=nil)
       sources = YAML.load_file(DoroSettings.env[:home] + '/etc/sources.yml')
       sources.keys.each do |sname|
         dfm = DorothyFetcher.new(sources[sname])
-        start_analysis(dfm.bins, daemon)
+        start_analysis(dfm.bins)
       end
       infinite = daemon #exit if wasn't set
       wait_end
@@ -431,12 +434,11 @@ def check_pid_file file
       Process.kill(0, pid)
     rescue Errno::ESRCH
       stale_pid = true
-    rescue
     end
 
     unless stale_pid
       puts "[Dorothy]".yellow + " Dorothy is already running (pid=#{pid})"
-      exit
+      exit(1)
     end
   end
 end

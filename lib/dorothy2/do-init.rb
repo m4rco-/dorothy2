@@ -201,7 +201,7 @@ module Dorothy
         finished = false
 
         until finished
-          puts "Please insert a unique name for your Sandbox - e.g. WinXP1"
+          puts "Please insert a unique name for your Sandbox (Must be the same name of the one it has in the ESX library) e.g. WinXP1"
           name = gets.chop
           conf[name] = Hash.new
 
@@ -266,6 +266,13 @@ module Dorothy
     #This method will populate the dorothive table sandboxes
     def init_sandbox(file="../etc/sandboxes.yml")
       conf = YAML.load_file(file)
+
+      db = Insertdb.new
+      db.begin_t
+
+      LOGGER.warn "INIT", "Waring, the SandBox table is gonna be flushed, and updated with the new file"
+      db.flush_table("sandboxes")
+
       conf.each_key do |sbox|
         LOGGER.info "INIT", "Inserting #{sbox}"
         values = conf[sbox].values_at("type", "os", "version", "os_lang", "ipaddress", "username", "password")
@@ -273,23 +280,17 @@ module Dorothy
         values.insert(1, sbox)
         values.push("default")
 
-        db = Insertdb.new
-        db.begin_t
-
-        LOGGER.warn "INIT", "Waring, the SandBox table is gonna be flushed, and updated with the new file"
-        db.flush_table("sandboxes")
-
-        if !db.insert("sandboxes", values)             #no it isn't, insert it
+        unless db.insert("sandboxes", values)             #no it isn't, insert it
           LOGGER.fatal "INIT", " ERROR-DB, please redo the operation"
           db.rollback
           next
-        else
-          db.commit
-          db.close
-          LOGGER.info "INIT", "Sandboxes correctly inserted into the database"
         end
-
       end
+
+      db.commit
+      db.close
+      LOGGER.info "INIT", "Sandboxes correctly inserted into the database"
+
     end
   end
 end

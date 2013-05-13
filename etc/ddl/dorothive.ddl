@@ -1359,6 +1359,7 @@ COPY sightings (sample, sensor, date, traffic_dump) FROM stdin;
 --
 
 COPY traffic_dumps (hash, size, pcapr_id, "binary", parsed) FROM stdin;
+EMPTYPCAP	0	ffff	ffff	true
 \.
 
 

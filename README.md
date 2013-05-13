@@ -49,8 +49,14 @@ It is raccommended to follow this step2step process:
 
  * Disable Windows firewall (preferred)
  * VMWare Tools must be installed in the Windows guest system.
+ * Configure a static IP
+ * After configuring everythingon the Guest OS, create a snapshot of the sandbox VM from vSphere console. Dorothy will use it when reverting the VM after a binary execution.
+
 3. Configure the unix VM used by the NAM
-     * Configure two NICs on the virtual machine, one of the two will be used for the network sniffing purpose. Assign one NIC to the sandbox dedicated virtual network, and the other NIC the the other one.  
+     * Configure two NICs on the virtual machine, one of the two will be used for the network sniffing purpose. Assign one NIC to the sandbox dedicated virtual network, and the other NIC the the other one.
+       >The vSwitch where the vNIC resides must allow the promisc mode, to enable it from vSphere:
+
+       >Configuration->Networking->Proprieties on the vistualSwitch used for the analysis->Double click on the virtual network userd for the analysis->Securiry->Tick "Promiscuous Mode", then select "Accept" from the list menu.
 
      * Install tcpdump and sudo
 

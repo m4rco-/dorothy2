@@ -3,18 +3,24 @@
 # See the file 'LICENSE' for copying permission.
 
 #!/usr/local/bin/ruby
-#$LOAD_PATH.unshift '/opt/local/lib/ruby/gems/1.8/gems/ruby-filemagic-0.4.2/lib'  #for MACOSX
-$LOAD_PATH.unshift '/usr/lib/ruby/gems/1.8/gems/ruby-filemagic-0.4.2/lib'		  #for linux Debian
+$LOAD_PATH.unshift '/opt/local/lib/ruby/gems/1.8/gems/ruby-filemagic-0.4.2/lib'  #for MACOSX
+#$LOAD_PATH.unshift '/usr/lib/ruby/gems/1.8/gems/ruby-filemagic-0.4.2/lib'		  #for linux Debian
 require 'rubygems'
 require 'mu/xtractr'
 require 'md5'
 require 'rbvmomi'
 require 'rest_client'
-
 require 'net/dns/packet'
 require 'ipaddr'
 require 'colored'
 require 'trollop'
+require 'ftools'
+require 'filemagic'                                    #require 'pcaplet'
+require 'geoip'                                       #1)gem install geoip
+require 'pg'
+require 'iconv'
+require 'tmail'
+require 'ipaddr'
 
 require File.dirname(__FILE__) + '/dorothy/environment'
 require File.dirname(__FILE__) + '/dorothy/do-parsers'
@@ -430,6 +436,7 @@ module DoroParser
       #gets
       @insertdb.set_analyzed(dump['hash'])
       @insertdb.commit
+      @insertdb.close
     end
   end
 

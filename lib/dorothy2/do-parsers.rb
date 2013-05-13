@@ -3,7 +3,7 @@
 # See the file 'LICENSE' for copying permission.
 
 #To install on MacOSXfile://localhost/Users/akira/Codes/doro-xtractr/do-parsers.rb
-#Go to postgress website and download the OSX installer 
+#Go to postgres website and download the OSX installer
 #none:ruby-pg-0.7.9.2008.01.28 root# gem install ruby-pg -- --with-pg-config="/Library/PostgreSQL/9.0/bin/pg_config" --with-pgsql-lib=/Library/PostgreSQL/9.0/lib --with-pgsql-include=/Library/PostgreSQL/9.0/include
 #
 #To install on Debian
@@ -11,21 +11,6 @@
 #apt-get install libpq-dev
 #sudo gem install pg -- --with-pgsql-lib=/usr/lib/postgresql/8.3/lib/ --with-pg-config=/usr/bin/pg_config
 
-#!/usr/local/bin/ruby
-$LOAD_PATH.unshift '/opt/local/lib/ruby/gems/1.8/gems/ruby-filemagic-0.4.2/lib'
-#$LOAD_PATH.unshift '/usr/lib/ruby/gems/1.8/gems/ruby-filemagic-0.4.2/lib'
-require 'rubygems'
-require 'ftools'
-require 'filemagic'
-require 'md5'
-require 'net/dns/packet'
-#require 'pcaplet'
-require 'mu/xtractr'
-require 'geoip' #1)gem install geoip
-require 'pg'
-require 'iconv'
-require 'tmail'
-require 'ipaddr'
 
 #include Pcap
 
@@ -355,7 +340,7 @@ end
 end
 
 
-class Doroxtractr < Mu::Xtractr
+class Doroxtractr < Mu::Xtractr    #PcaprLocal::Xtractr.new
 	
 	#def lol(id)
 	#	self.create "http://172.20.250.13:8080/pcaps/1/pcap/#{id}"

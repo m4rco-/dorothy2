@@ -105,7 +105,7 @@ class Loadmalw
   attr_reader :pcaprid
   attr_reader :type
   attr_reader :dbtype
-  attr_reader :sha
+  attr_accessor :sha
   attr_reader :md5
   attr_reader :binpath
   attr_reader :filename
