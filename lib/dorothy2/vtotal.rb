@@ -1,4 +1,4 @@
-# Copyright (C) 2013 marco riccardi.
+# Copyright (C) 2010-2013 marco riccardi.
 # This file is part of Dorothy - http://www.honeynet.it/dorothy
 # See the file 'LICENSE' for copying permission.
 

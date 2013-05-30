@@ -1,8 +1,8 @@
-# Copyright (C) 2013 marco riccardi.
+# Copyright (C) 2010-2013 marco riccardi.
 # This file is part of Dorothy - http://www.honeynet.it/dorothy
 # See the file 'LICENSE' for copying permission.
 
-#To install on MacOSXfile://localhost/Users/akira/Codes/doro-xtractr/do-parsers.rb
+#To install on MacOSX
 #Go to postgres website and download the OSX installer
 #none:ruby-pg-0.7.9.2008.01.28 root# gem install ruby-pg -- --with-pg-config="/Library/PostgreSQL/9.0/bin/pg_config" --with-pgsql-lib=/Library/PostgreSQL/9.0/lib --with-pgsql-include=/Library/PostgreSQL/9.0/include
 #
