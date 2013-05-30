@@ -8,9 +8,9 @@ Gem::Specification.new do |gem|
   gem.version       = Dorothy2::VERSION
   gem.authors       = ["marco riccardi"]
   gem.email         = ["marco.riccardi@honeynet.it"]
-  gem.description   = %q{The dorothy gem}
-  gem.summary       = %q{blablabla}
-  gem.homepage      = "http://www.honeynet.it"
+  gem.description   = %q{A malware/botnet analysis framework written in Ruby.}
+  gem.summary       = %q{More info at http://www.honeynet.it}
+  gem.homepage      = "https://github.com/m4rco-/dorothy2"
 
   gem.files         = `git ls-files`.split($/)
   gem.executables   = gem.files.grep(%r{^bin/}).map{ |f| File.basename(f) }
