@@ -182,8 +182,8 @@ The first time you execute Dorothy, it will ask you to fill those information in
 
  >Example
 
-    $dorothy_start -v -s malwarefolder
-    $dorothy_stop
+ >   $dorothy_start -v -s malwarefolder
+ >   $dorothy_stop
 
 ###6. Debugging problems
 
