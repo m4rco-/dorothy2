@@ -220,4 +220,80 @@ module Dorothy
 
   end
 
+  class Loadmalw
+    attr_reader :pcaprid
+    attr_reader :type
+    attr_reader :dbtype
+    attr_accessor :sha
+    attr_reader :md5
+    attr_reader :binpath
+    attr_reader :filename
+    attr_reader :ctime
+    attr_reader :size
+    attr_reader :pcapsize
+    attr_reader :extension
+    attr_accessor :sourceinfo   #used for storing info about where the binary come from (if needed)
+
+    #	attr_accessor :dir_home
+    attr_accessor :dir_pcap
+    attr_accessor :dir_bin
+    attr_accessor :dir_screens
+    attr_accessor :dir_downloads
+
+    def initialize(file)
+
+      fm = FileMagic.new
+      sha = Digest::SHA2.new
+      md5 = Digest::MD5.new
+      @binpath = file
+      @filename = File.basename file
+      @extension = File.extname file
+      @dbtype = "null"  #TODO: remove type column in sample table
+
+      File.open(file, 'rb') do |fh1|
+        while buffer1 = fh1.read(1024)
+          @sha = sha << buffer1
+          @md5 = md5 << buffer1
+        end
+      end
+
+      @sha = @sha.to_s
+      @md5 = @md5.to_s.rstrip
+      @sourceinfo = nil
+
+      timetmp = File.ctime(file)
+      @ctime= timetmp.strftime("%m/%d/%y %H:%M:%S")
+      @type = fm.file(file)
+
+      if @extension.empty?    #no extension, trying to put the right one..
+        case @type
+          when /^PE32/ then
+            @extension = (@type =~ /DLL/ ? ".dll" : ".exe")
+          when /^MS-DOS/ then
+            @extension = ".bat"
+          when /^HTML/ then
+            @extension = ".html"
+          else
+            @extension = nil
+        end
+      end
+
+
+      @size = File.size(file)
+    end
+
+
+
+    def self.calc_pcaprid(file, size)
+      #t = file.split('/')
+      #dumpname = t[t.length - 1]
+      @pcaprid = Digest::MD5.new
+      @pcaprid << "#{file}:#{size}"
+      @pcaprid = @pcaprid.dup.to_s.rstrip
+    end
+
+
+  end
+
+
 end

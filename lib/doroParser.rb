@@ -8,6 +8,14 @@
 
 #Install mu/xtractr from svn checkout http://pcapr.googlecode.com/svn/trunk/ pcapr-read-only
 
+
+
+############################
+## Dorothy                ##
+## Data Definition Module ##
+############################
+
+
 require 'rubygems'
 require 'mu/xtractr'
 require 'md5'
@@ -17,7 +25,6 @@ require 'net/dns'
 require 'net/dns/packet'
 require 'ipaddr'
 require 'colored'
-require 'trollop'
 require 'ftools'
 require 'filemagic'                                    #require 'pcaplet'
 require 'geoip'
@@ -27,7 +34,7 @@ require 'tmail'
 require 'ipaddr'
 
 require File.dirname(__FILE__) + '/dorothy2/environment'
-require File.dirname(__FILE__) + '/dorothy2/do-parsers'
+require File.dirname(__FILE__) + '/dorothy2/DEM'
 require File.dirname(__FILE__) + '/dorothy2/do-utils'
 require File.dirname(__FILE__) + '/dorothy2/do-logger'
 require File.dirname(__FILE__) + '/dorothy2/deep_symbolize'

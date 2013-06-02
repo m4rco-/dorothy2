@@ -18,16 +18,21 @@ include DoroParser
 
 opts = Trollop.options do
   banner <<-EOS
-	
-	The Dorothy Malware Analysis Framework 2.0   
-	
-	www.honeynet.it 
-	
+
+   ####################################################
+   ##                                                ##
+   ##  The Dorothy Malware Analysis Framework 2.0    ##
+   ##                                                ##
+   ####################################################
+
+        marco.riccardi@honeynet.it
+	www.honeynet.it/dorothy
+
+
 	Usage:
-	"do-dissector.rb" [options]
+  dparser_start [options]
 	where [options] are:
   EOS
-
 
   opt :verbose, "Enable verbose mode"
   opt :nonetbios, "Hide Netbios communication"
