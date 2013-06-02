@@ -7,9 +7,9 @@
 require 'rubygems'
 require 'trollop'
 require 'dorothy2'
-#require 'doroParser'
+require 'doroParser'
 
-load '../lib/doroParser.rb'
+#load '../lib/doroParser.rb'
 
 include Dorothy
 include DoroParser

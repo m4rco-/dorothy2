@@ -6,9 +6,9 @@
 
 require 'rubygems'
 require 'trollop'
-#require 'dorothy2'          #comment for testing/developmnet
+require 'dorothy2'          #comment for testing/developmnet
 
-load '../lib/dorothy2.rb'  #uncomment for testing/developmnet
+#load '../lib/dorothy2.rb'  #uncomment for testing/developmnet
 
 include Dorothy
 
@@ -142,7 +142,7 @@ if Util.exists?(sfile)
     end
   end
 else
-  puts "[WARNING]".red + " A source file doesn't exist, please crate one into #{home}/etc. See the example file in #{HOME}/etc/sandboxes.yml.example"
+  puts "[WARNING]".red + " A source file doesn't exist, please crate one into #{home}/etc. See the example file in #{HOME}/etc/sources.yml.example"
   exit(0)
 end
 
