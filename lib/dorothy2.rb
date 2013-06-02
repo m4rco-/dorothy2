@@ -1,5 +1,5 @@
 # Copyright (C) 2010-2013 marco riccardi.
-# This file is part of Dorothy - http://www.honeynet.it/dorothy
+# This file is part of Dorothy - http://www.honeynet.it/
 # See the file 'LICENSE' for copying permission.
 
 ##for irb debug:

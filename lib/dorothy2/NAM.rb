@@ -1,3 +1,7 @@
+# Copyright (C) 2010-2013 marco riccardi.
+# This file is part of Dorothy - http://www.honeynet.it/
+# See the file 'LICENSE' for copying permission.
+
 module Dorothy
 
   #Dorothy module-class for controlling the network sniffers i.e. tcpdump instances
