@@ -159,7 +159,7 @@ module Dorothy
       end
 
       @sha = @sha.to_s
-      @md5 = @md5.to_s
+      @md5 = @md5.to_s.rstrip
       @sourceinfo = nil
 
       timetmp = File.ctime(file)
@@ -194,7 +194,7 @@ module Dorothy
       #dumpname = t[t.length - 1]
       @pcaprid = Digest::MD5.new
       @pcaprid << "#{file}:#{size}"
-      @pcaprid =@pcaprid.dup.to_s
+      @pcaprid = @pcaprid.dup.to_s.rstrip
     end
 
 

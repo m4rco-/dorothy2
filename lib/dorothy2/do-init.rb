@@ -161,6 +161,17 @@ module Dorothy
         puts "Folder where to store PCAP files [~/pcaps]"
         conf["nam"]["pcaphome"] = (t = gets.chop).empty? ? "~/pcaps" : t
 
+        ######################################################
+        ###PCAPR
+        ######################################################
+
+        puts "\n######### [" + " Pcapr configuration ".red + "] #########"
+
+        puts "Host [NAM: #{conf["nam"]["host"]}]:"
+        conf["pcapr"]["host"] = (t = gets.chop).empty? ? conf["nam"]["host"] : t
+
+        puts "Port [8080]:"
+        conf["pcapr"]["port"] = (t = gets.chop).empty? ? 8080 : t
 
         ######################################################
         ###VIRUS TOTAL

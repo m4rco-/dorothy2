@@ -23,7 +23,3 @@ module Process
   end unless self.respond_to? :daemon
 end
 
-module Dorothy
-  ROOT = File.expand_path(File.dirname(File.dirname(__FILE__)))
-  $: << ROOT
-end

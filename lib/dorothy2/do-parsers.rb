@@ -197,8 +197,8 @@ class Geoinfo
 			
 			begin
 				
-				geoip = GeoIP.new(GEOIP)
-				geoasn = GeoIP.new(GEPASN)
+				geoip = GeoIP.new(DoroSettings.env[:geoip])
+				geoasn = GeoIP.new(DoroSettings.env[:geoasn])
 				
 				if geoip.country(ip)
 					@city = noutf.iconv(geoip.country(ip).city_name).gsub(/"|'|\\/, "-") #xcode bug ->>> ")
@@ -328,7 +328,7 @@ class DoroFile
 	attr_accessor :size
 	
 	def initialize(hash)
-		repo = "./downloads"
+		repo = DoroSettings.env[:home] + "/downloads"
 		@path = "#{repo}/#{hash}.exe"
 		@date = Time.new.strftime("%m/%d/%y %H:%M:%S")
 	end

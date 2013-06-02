@@ -8,16 +8,21 @@
 require 'rubygems'
 require 'trollop'
 require 'dorothy2'
-require 'doroParser'
+#require 'doroParser'
 
-#load '../lib/doroParser'
+load '../lib/doroParser.rb'
 
+include Dorothy
 include DoroParser
+
+conf = "#{File.expand_path("~")}/.dorothy.yml"
+DoroSettings.load!(conf)
 
 
 #Logging
-LOGGER_PARSER = DoroLogger.new(LOGFILE_PARSER, LOGAGE)
-LOGGER_PARSER.sev_threshold = LOGLEVEL
+LOGGER_PARSER = DoroLogger.new(STDOUT, 'weekly')
+
+LOGGER = DoroLogger.new(STDOUT, 'weekly')
 
 DoroParser.stop
 

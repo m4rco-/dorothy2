@@ -11,7 +11,6 @@ Gem::Specification.new do |gem|
   gem.description   = %q{A malware/botnet analysis framework written in Ruby.}
   gem.summary       = %q{More info at http://www.honeynet.it}
   gem.homepage      = "https://github.com/m4rco-/dorothy2"
-
   gem.files         = `git ls-files`.split($/)
   gem.executables   = gem.files.grep(%r{^bin/}).map{ |f| File.basename(f) }
   gem.test_files    = gem.files.grep(%r{^(test|spec|features)/})
@@ -26,5 +25,9 @@ Gem::Specification.new do |gem|
   gem.add_dependency(%q<virustotal>, [">= 2.0.0"])
   gem.add_dependency(%q<rbvmomi>, [">= 1.3.0"])
   gem.add_dependency(%q<ruby-filemagic>, [">= 0.4.2"])
-
+  #for dparser
+  gem.add_dependency(%q<net-dns>, [">= 0.8.0"])
+  gem.add_dependency(%q<geoip>, [">= 1.2.1"])
+  gem.add_dependency(%q<tmail>, [">= 1.2.7.1"])
 end
+

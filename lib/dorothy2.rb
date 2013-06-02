@@ -27,9 +27,7 @@ require 'md5'
 require File.dirname(__FILE__) + '/dorothy2/do-init'
 require File.dirname(__FILE__) + '/dorothy2/Settings'
 require File.dirname(__FILE__) + '/dorothy2/deep_symbolize'
-
 require File.dirname(__FILE__) + '/dorothy2/environment'
-
 require File.dirname(__FILE__) + '/dorothy2/vtotal'
 require File.dirname(__FILE__) + '/dorothy2/MAM'
 require File.dirname(__FILE__) + '/dorothy2/BFM'
@@ -65,7 +63,7 @@ module Dorothy
     else
       LOGGER.warn("SANDBOX", "File #{bin.filename} actually not supported, skipping\n" + "	Filtype: #{bin.type}") # if VERBOSE
       dir_not_supported = File.dirname(bin.binpath) + "/not_supported"
-      Dir.mkdir(dir_not_supported) unless Utils.exists?(dir_not_supported)
+      Dir.mkdir(dir_not_supported) unless File.exists?(dir_not_supported)
       FileUtils.cp(bin.binpath,dir_not_supported) #mv?
       FileUtils.rm(bin.binpath) ## mv?
       return false
@@ -235,8 +233,8 @@ module Dorothy
       pcapfile =  bin.dir_pcap + dumpname + ".pcap"
       dump = Loadmalw.new(pcapfile)
 
-      pcaprpath = bin.md5 + "/pcap/" + dump.filename
-      pcaprid = Loadmalw.calc_pcaprid(pcaprpath, dump.size)
+      #pcaprpath = bin.md5 + "/pcap/" + dump.filename
+      pcaprid = Loadmalw.calc_pcaprid(dump.filename, dump.size)
 
       LOGGER.debug "NAM", "VM#{guestvm[0]} ".yellow + "Pcaprid: " + pcaprid if VERBOSE
 
@@ -248,7 +246,7 @@ module Dorothy
         empty_pcap = true
       end
 
-      dumpvalues = [dump.sha, dump.size, pcaprid, pcapfile, 'false']
+      dumpvalues = [dump.sha, dump.size, pcaprid, dump.binpath, 'false']
       dump.sha = "EMPTYPCAP" if empty_pcap
       analysis_values = [anal_id, bin.sha, guestvm[0], dump.sha, get_time]
 
@@ -368,7 +366,7 @@ module Dorothy
       puts "[Dorothy]".yellow + " Logging on #{DoroSettings.env[:logfile]}"
       Process.daemon
       create_pid_file DoroSettings.env[:pidfile]
-      LOGGER.info "Dorothy", "Going in backround with pid #{Process.pid}"
+      puts "[Dorothy]".yellow +  " Going in backround with pid #{Process.pid}"
     end
 
     #Creating a new NAM object for managing the sniffer
@@ -402,7 +400,7 @@ module Dorothy
         infinite = daemon #exit if wasn't set
         wait_end
         LOGGER.info "Dorothy", "SLEEPING" if daemon
-        sleep DoroSettings.env[:dtimeout] if daemon # Sleeping a while if -d wasn't set, then quit.
+        sleep DoroSettings.env[:dtimeout].to_i if daemon # Sleeping a while if -d wasn't set, then quit.
       end
     end
 
@@ -460,10 +458,9 @@ module Dorothy
     if pid_file and File.exist? pid_file
       pid = Integer(File.read(pid_file))
       Process.kill(-15, -pid)
-      puts "[Dorothy]".yellow + " Process #{pid} terminated"
       LOGGER.info "Dorothy", "Process #{pid} terminated"
     else
-      puts "[Dorothy]".yellow +  " Can't find PID file, is Dorothy really running?"
+      LOGGER.info "Dorothy", "Can't find PID file, is Dorothy really running?"
     end
   end
 

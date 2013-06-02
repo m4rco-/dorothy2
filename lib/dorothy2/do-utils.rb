@@ -174,7 +174,7 @@ module Dorothy
     def find_pcap
       @pcaps = []
       begin
-        @db.exec("SELECT traffic_dumps.hash, traffic_dumps.pcapr_id, traffic_dumps.size, traffic_dumps.binary, traffic_dumps.parsed, samples.md5 as \"sample\", analyses.date as \"date\" FROM dorothy.traffic_dumps, dorothy.samples, dorothy.analyses WHERE analyses.traffic_dump = traffic_dumps.hash AND analyses.sample = samples.hash AND traffic_dumps.parsed = false").each do |q|
+        @db.exec("SELECT traffic_dumps.hash, traffic_dumps.pcapr_id, traffic_dumps.size, traffic_dumps.binary, traffic_dumps.parsed, samples.md5 as \"sample\", analyses.date as \"date\", analyses.id as \"anal_id\" FROM dorothy.traffic_dumps, dorothy.samples, dorothy.analyses WHERE analyses.traffic_dump = traffic_dumps.hash AND analyses.sample = samples.hash AND traffic_dumps.parsed = false").each do |q|
           @pcaps.push q
         end
       rescue
