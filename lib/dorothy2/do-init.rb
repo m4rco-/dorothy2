@@ -80,9 +80,6 @@ module Dorothy
         conf["env"]["loglevel"] = 0
         conf["env"]["logage"] = "weekly"
 
-        conf["env"]["testmode"] = true
-
-
 
         ######################################################
         ###DOROTHIVE
@@ -103,7 +100,6 @@ module Dorothy
         conf["dorothive"]["dbpass"] = gets.chop
 
         conf["dorothive"]["ddl"] = "#{HOME}/etc/ddl/dorothive.ddl"
-
 
         ######################################################
         ###ESX
@@ -181,6 +177,17 @@ module Dorothy
 
         puts "In order to retrieve Virus signatures, Dorothy needs to contact VirusTotal,\n please enter your VT API key here, if you don't have one yet, go here (or press enter):\nhttps://www.virustotal.com/en/#dlg-join "
         conf["virustotal"]["vtapikey"] = gets.chop
+
+        puts "Enable test mode? In test mode dorothy will avoid to poll Virustotal [y]"
+
+        t = gets.chop
+        if t.empty? || t == "y" || t == "yes"
+          conf["env"]["testmode"] = true
+        else
+          conf["env"]["testmode"] = false
+        end
+
+        ##########CONF FINISHED##################
 
         puts "\n######### [" + " Configuration finished ".yellow + "] #########"
         puts "Confirm? [y]"
