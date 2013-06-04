@@ -6,9 +6,9 @@
 
 require 'rubygems'
 require 'trollop'
-require 'dorothy2'          #comment for testing/developmnet
+#require 'dorothy2'          #comment for testing/developmnet
 
-#load '../lib/dorothy2.rb'  #uncomment for testing/developmnet
+load '../lib/dorothy2.rb'  #uncomment for testing/developmnet
 
 include Dorothy
 

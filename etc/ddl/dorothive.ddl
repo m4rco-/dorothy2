@@ -298,7 +298,7 @@ COMMENT ON CONSTRAINT size_notneg ON samples IS 'Sample size must not be negativ
 CREATE TABLE traffic_dumps (
     hash character(64) NOT NULL,
     size integer NOT NULL,
-    pcapr_id character(64),
+    pcapr_id character(32),
     "binary" character varying,
     parsed boolean
 );

@@ -17,7 +17,6 @@
 
 
 require 'rubygems'
-require 'mu/xtractr'
 require 'md5'
 require 'rbvmomi'
 require 'rest_client'
@@ -32,13 +31,15 @@ require 'pg'
 require 'iconv'
 require 'tmail'
 require 'ipaddr'
+require 'net/http'
+require 'json'
 
 require File.dirname(__FILE__) + '/dorothy2/environment'
+require File.dirname(__FILE__) + '/mu/xtractr'
 require File.dirname(__FILE__) + '/dorothy2/DEM'
 require File.dirname(__FILE__) + '/dorothy2/do-utils'
 require File.dirname(__FILE__) + '/dorothy2/do-logger'
 require File.dirname(__FILE__) + '/dorothy2/deep_symbolize'
-
 
 
 module DoroParser
@@ -85,12 +86,34 @@ module DoroParser
 
 
       begin
-        xtractr = Doroxtractr.create "http://#{DoroSettings.pcapr[:host]}:#{DoroSettings.pcapr[:port]}/pcaps/1/pcap/#{dump['pcapr_id'].gsub(/\s+/, "")}"
+
+        #check if the pcap has been correctly indexed by pcapr
+        xtractr = Doroxtractr.create "http://#{DoroSettings.pcapr[:host]}:#{DoroSettings.pcapr[:port]}/pcaps/1/pcap/#{dump['pcapr_id'].rstrip}"
 
       rescue => e
-        LOGGER_PARSER.fatal "PARSER", "Can't create a XTRACTR instance, try with nextone"
+        LOGGER_PARSER.fatal "PARSER", "Can't connect to the PCAPR server."
         LOGGER_PARSER.debug "PARSER", "#{$!}"
-        LOGGER_PARSER.debug "PARSER", e
+        LOGGER_PARSER.debug "PARSER", e.backtrace if VERBOSE
+        return false
+      end
+
+      #it may happen that Pcapr has created an instance, but it is still indexing the pcap.
+      #The following section is to avoid a crash while quering such (still-empty instance)
+      #In addition, an added check is inserted, to see if the pcapr instance really match the pcap filename
+      begin
+      pcapr_query = URI.parse "http://#{DoroSettings.pcapr[:host]}:#{DoroSettings.pcapr[:port]}/pcaps/1/about/#{dump['pcapr_id'].rstrip}"
+      pcapr_response = Net::HTTP.get_response(pcapr_query)
+      pcapname = File.basename(JSON.parse(pcapr_response.body)["filename"], ".pcap")
+
+      t ||= $1 if pcapname =~ /[0-9]*\-(.*)$/
+      raise NameError.new if  t != dump['sample'].rstrip
+
+      rescue NameError
+        LOGGER_PARSER.error "PARSER", "The pcapr filename mismatchs the one present in Dorothive!. Skipping."
+        next
+
+      rescue
+        LOGGER_PARSER.error "PARSER", "Can't find the PCAP into Pcapr, maybe it has not been indexed yet. Skipping."
         next
       end
 
@@ -103,17 +126,13 @@ module DoroParser
 
           flowdeep = xtractr.flows("flow.id:#{flow.id}")
 
-
-
           #Skipping if NETBIOS spreading activity:
           if flow.dport == 135 or flow.dport == 445
             LOGGER_PARSER.info "PARSER", "Netbios connections, skipping flow" unless NONETBIOS
             next
           end
 
-
           title = flow.title[0..200].gsub(/'/,"") #xtool bug ->')
-
 
           #insert hosts (geo) info into db
           #TODO: check if is a localaddress
@@ -258,10 +277,6 @@ module DoroParser
 
                     end
 
-
-
-
-
                   end
 
                 #case MAIL
@@ -269,8 +284,6 @@ module DoroParser
                   LOGGER_PARSER.info "SMTP", "FOUND an SMTP request..".white
                   #insert mail
                   #by from to subject data id time connection
-
-
                   streamdata.each do |m|
                     mailfrom = 'null'
                     mailto = 'null'
@@ -303,8 +316,6 @@ module DoroParser
                     @insertdb.insert("emails", mailvalues )
                   end
 
-
-
                 #case FTP
                 when "FTP" then
                   LOGGER_PARSER.info "FTP", "FOUND an FTP request".white
@@ -324,9 +335,7 @@ module DoroParser
                     end
                   end
 
-
                 else
-
                   LOGGER_PARSER.info "PARSER", "Unknown traffic, try see if it is IRC traffic"
 
                   if Parser.guess(streamdata.inspect).class.inspect =~ /IRC/
@@ -358,13 +367,11 @@ module DoroParser
                     end
                   end
 
-
                   @p.each do |d|
 
                     begin
 
                       dns = DoroDNS.new(d)
-
 
                       dnsvalues = ["default", dns.name, dns.cls_i.inspect, dns.qry?, dns.ttl, flowid, dns.address.to_s, dns.data, dns.type_i.inspect]
 
@@ -404,8 +411,8 @@ module DoroParser
 
         rescue => e
 
-          LOGGER_PARSER.error "PARSER", "Error while analyzing flow #{flow.id}"
-          LOGGER_PARSER.debug "PARSER", "#{e.inspect} BACKTRACE: #{e.backtrace}"
+          LOGGER_PARSER.error "PARSER", "Error while analyzing flow #{flow.id}: #{e.inspect}"
+          LOGGER_PARSER.debug "PARSER", "#{e.backtrace}" if VERBOSE
           LOGGER_PARSER.info "PARSER", "Flow #{flow.id} will be skipped"
           next
         end

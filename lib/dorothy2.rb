@@ -5,7 +5,6 @@
 ##for irb debug:
 ##from $home, irb and :
 ##load 'lib/dorothy2.rb'; include Dorothy; LOGGER = DoroLogger.new(STDOUT, "weekly"); DoroSettings.load!('etc/dorothy.yml')
-#$LOAD_PATH.unshift '/opt/local/lib/ruby/gems/1.8/gems/ruby-filemagic-0.4.2/lib'
 
 require 'net/ssh'
 require 'net/scp'
@@ -152,8 +151,8 @@ module Dorothy
       vsm.copy_file("#{bin.md5}#{bin.extension}",filecontent)
 
       #Start Sniffer
-      dumpname = bin.md5
-      pid = @nam.start_sniffer(guestvm[2],DoroSettings.nam[:interface], dumpname, DoroSettings.nam[:pcaphome]) #dumpname = vmfile.pcap
+      dumpname = anal_id.to_s + "-" + bin.md5
+      pid = @nam.start_sniffer(guestvm[2],DoroSettings.nam[:interface], dumpname, DoroSettings.nam[:pcaphome])
       LOGGER.info "NAM","VM#{guestvm[0]} ".yellow + "Start sniffing module"
       LOGGER.debug "NAM","VM#{guestvm[0]} ".yellow + "Tcpdump instance #{pid} started" if VERBOSE
 
@@ -216,8 +215,7 @@ module Dorothy
 
       #Downloading PCAP
       LOGGER.info "NAM", "VM#{guestvm[0]} ".yellow + "Downloading #{dumpname}.pcap to #{bin.dir_pcap}"
-      #t = DoroSettings.nam[:pcaphome] + "/" + dumpname + ".pcap"
-      Ssh.download(DoroSettings.nam[:host], DoroSettings.nam[:user],DoroSettings.nam[:pass], DoroSettings.nam[:pcaphome] + "/" + dumpname + ".pcap", bin.dir_pcap)
+      Ssh.download(DoroSettings.nam[:host], DoroSettings.nam[:user],DoroSettings.nam[:pass], DoroSettings.nam[:pcaphome] + "/#{dumpname}.pcap", bin.dir_pcap)
 
       #Downloading Screenshots from esx
       LOGGER.info "NAM", "VM#{guestvm[0]} ".yellow + "Downloading Screenshots"
@@ -231,11 +229,10 @@ module Dorothy
       #UPDATE DOROTHIBE DB#
       #####################
 
-      pcapfile =  bin.dir_pcap + dumpname + ".pcap"
-      dump = Loadmalw.new(pcapfile)
+      dump = Loadmalw.new(bin.dir_pcap + dumpname + ".pcap")
 
       #pcaprpath = bin.md5 + "/pcap/" + dump.filename
-      pcaprid = Loadmalw.calc_pcaprid(dump.filename, dump.size)
+      pcaprid = Loadmalw.calc_pcaprid(dump.filename, dump.size).rstrip
 
       LOGGER.debug "NAM", "VM#{guestvm[0]} ".yellow + "Pcaprid: " + pcaprid if VERBOSE
 
