@@ -1,0 +1,21 @@
+##############
+#DOROTHY-TODO#
+##############
+
+-PORT TO Ruby 2.0
+-WGUI
+
+-BINARY STATIC ANALYSIS
+-ANALYZE SYSTEM CHANGES
+-SYSTEM ANALYSIS -VMWARE API: QueryChangedDiskAreas
+-LIST PROCESSES-> pm.ListProcessesInGuest(:vm => vm, :auth => auth).inspect
+
+-CODE- CATCH CTRL-C AND EXIT GRACEFULLY
+-INTERACTIVE CONSOLE FOR NETWORK ANALYSIS
+
+-REVIEW DOROTHIVE (binary fullpath?)
+
+-ADD EMAIL AS SOURCETYPE (use ruby mail gem for retreiving the emails, and parse them)
+
+-REPORT PLUGIN
+ -REPORT - MAEC

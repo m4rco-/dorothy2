@@ -16,16 +16,16 @@ module Dorothy
       File.exist?(file)
     end
 
-    def init_db(force=false)
-      LOGGER.warn "DB", "The database is going to be initialized, all the data present will be lost. Continue?(write yes)"
+    def init_db(ddl=DoroSettings.dorothive[:ddl], force=false)
+      LOGGER.warn "DB", "The database is going to be initialized with the file #{ddl}. If the Dorothive is already present, " + "all the its data will be lost".red + ". Continue?(write yes)"
       answ = "yes"
       answ = gets.chop unless force
 
       if answ == "yes"
         begin
           #ugly, I know, but couldn't find a better and easier way..
-          raise 'An error occurred' unless system "psql -h #{DoroSettings.dorothive[:dbhost]} -U #{DoroSettings.dorothive[:dbuser]} -f #{DoroSettings.dorothive[:ddl]}"
-          LOGGER.info "DB", "Database correctly initialized."
+          raise 'An error occurred' unless system "psql -h #{DoroSettings.dorothive[:dbhost]} -U #{DoroSettings.dorothive[:dbuser]} -f #{ddl} 1> /dev/null"
+          LOGGER.info "DB", "Database correctly initialized. Now you can restart Dorothy!"
         rescue => e
           LOGGER.error "DB", $!
           LOGGER.debug "DB", e.inspect
@@ -248,7 +248,6 @@ module Dorothy
       @binpath = file
       @filename = File.basename file
       @extension = File.extname file
-      @dbtype = "null"  #TODO: remove type column in sample table
 
       File.open(file, 'rb') do |fh1|
         while buffer1 = fh1.read(1024)

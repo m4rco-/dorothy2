@@ -7,15 +7,15 @@
 ###BINARY FETCHER MODULE###
 ###					          	###
 ###########################
-
+#The BFM module is in charge of retreiving the binary from the sources configured in the sources.yml file.
+#It receive the source hash, and return the downloaded binaries objects.
 module Dorothy
-
 
   class DorothyFetcher
     attr_reader :bins
 
-
-    def initialize(source)  #source struct: Hash, {:dir => "#{HOME}/bins/honeypot", :typeid=> 0 ..}
+    #Source struct: Hash, {:dir => "#{HOME}/bins/honeypot", :typeid=> 0 ..}
+    def initialize(source)
       ndownloaded = 0
 
       @bins = []
@@ -26,7 +26,6 @@ module Dorothy
         when "ssh" then
           LOGGER.info "BFM", " Fetching trojan from > Honeypot"
           #file = "/opt/dionaea/var/dionaea/binaries/"
-
           #puts "Start to download malware"
 
           files = []
@@ -37,7 +36,6 @@ module Dorothy
                 unless files.include? "#{source["localdir"]}/" + File.basename(name)
                   ndownloaded += 1
                   files.push "#{source["localdir"]}/" + File.basename(name)
-                  #			puts ""
                 end
                 #		print "#{File.basename(name)}: #{sent}/#{total}\r"
                 #		$stdout.flush
@@ -45,26 +43,22 @@ module Dorothy
               LOGGER.info "BFM", "#{ndownloaded} files downloaded"
             end
 
-
           rescue => e
             LOGGER.error "BFM", "An error occurred while downloading malwares from honeypot sensor: " + $!
             LOGGER.error "BFM", "Error: #{$!}, #{e.inspect}, #{e.backtrace}"
           end
 
           #DIRTY WORKAROUND for scp-ing only files without directory
-
           FileUtils.mv(Dir.glob(source["localdir"] + "/binaries/*"), source["localdir"])
           Dir.rmdir(source["localdir"] + "/binaries")
 
 
           begin
-
             unless DoroSettings.env[:testmode]
               Net::SSH.start(source["ip"], source["user"], :password => source["pass"], :port => source["port"]) do |ssh|
                 ssh.exec "mv #{source["remotedir"]}/* #{source["remotedir"]}/../analyzed "
               end
             end
-
           rescue
             LOGGER.error "BFM", "An error occurred while erasing parsed malwares in the honeypot sensor: " + $!
           end
@@ -87,8 +81,6 @@ module Dorothy
       end
     end
 
-
-
     private
     def load_malw(f, typeid, sourceinfo = nil)
 
@@ -100,7 +92,7 @@ module Dorothy
         return false
       end
 
-      samplevalues = [bin.sha, bin.size, bin.dbtype, bin.dir_bin, filename, bin.md5, bin.type ]
+      samplevalues = [bin.sha, bin.size, bin.dir_bin, filename, bin.md5, bin.type ]
       sighvalues = [bin.sha, typeid, bin.ctime, "null"]
 
       begin

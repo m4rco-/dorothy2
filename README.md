@@ -55,6 +55,11 @@ Dorothy needs the following software (not expressly in the same host) in order t
 * [pcapr-local](https://github.com/mudynamics/pcapr-local )  (only used by doroParser)
 * MaxMind libraries (only used by doroParser)
 
+Regarding the Operating System
+
+* Dorothy has been designed to run on any *nix system. So far it was successfully tested on OSX and Linux.
+* The virtual machines used as sandboxes are meant to be Windows based (successfully tested on XP)
+* Only pcapr-local strictly requires Linux, if you want to use a Mac for executing this gem (like I do), install it into the NAM (as this guide suggests)
 
 ## Installation
 
@@ -116,7 +121,7 @@ It is recommended to follow this step2step process:
 
         #gem install pcapr-local
 
-* Start pcapr-local by using the dorothy's account and configure it. When prompted, insert the folder path used to store the network dumps
+* Start pcapr-local by using the dorothy's system account and configure it. When prompted, insert the folder path used to store the network dumps
 
         $startpcapr
         ....
@@ -267,6 +272,18 @@ Below there are some tips about how understand the root-cause of your crash.
 3. Drop an email to info at honeynet.it with the output of your errors :)
 
 ------------------------------------------
+
+## Acknowledgements
+
+Thanks to all the people who have contributed in making the Dorothy2 project up&running:
+
+* Marco C. (research)
+* Davide C. (Dorothive)
+* Andrea V. (WGUI)
+* Domenico C. - Patrizia P. (Dorothive/JDrone)
+* [All](https://www.honeynet.it/research) the graduating students from [UniMI](http://cdlonline.di.unimi.it/) who have contributed.
+* Sabrina P. (our students "headhunter" :)
+* Jorge C. and Nelson M. (betatesting/first release feedbacks)
 
 ## Contributing
 

@@ -6,9 +6,9 @@
 
 require 'rubygems'
 require 'trollop'
-#require 'dorothy2'          #comment for testing/developmnet
+require 'dorothy2'          #comment for testing/developmnet
 
-load '../lib/dorothy2.rb'  #uncomment for testing/developmnet
+#load '../lib/dorothy2.rb'  #uncomment for testing/developmnet
 
 include Dorothy
 
@@ -37,7 +37,7 @@ opts = Trollop.options do
   opt :source, "Choose a source (from the ones defined in etc/sources.yml)", :type => :string
   opt :daemon, "Stay in the backround, by constantly pooling datasources"
   opt :SandboxUpdate, "Update Dorothive with the new Sandbox file"
-  opt :DorothiveInit, "(RE)Install the Dorothy Database (Dorothive)"
+  opt :DorothiveInit, "(RE)Install the Dorothy Database (Dorothive)", :type => :string
 
 end
 
@@ -103,6 +103,12 @@ end
 sfile = home + '/etc/sources.yml'
 sboxfile = home + '/etc/sandboxes.yml'
 
+if opts[:DorothiveInit]
+  Util.init_db(opts[:DorothiveInit])
+  puts "[Dorothy]".yellow + " Database loaded, now you can restart Dorothy!"
+  exit(0)
+end
+
 #INIT DB Connector
 begin
   db = Insertdb.new
@@ -119,11 +125,6 @@ rescue => e
   end
 end
 
-
-if opts[:DorothiveInit]
-  Util.init_db
-  exit(0)
-end
 
 if opts[:SandboxUpdate]
   puts "[Dorothy]".yellow + " Loading #{sboxfile} into Dorothive"

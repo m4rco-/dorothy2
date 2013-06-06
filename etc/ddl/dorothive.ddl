@@ -129,26 +129,6 @@ CREATE TYPE layer7_protocols AS ENUM (
 ALTER TYPE dorothy.layer7_protocols OWNER TO postgres;
 
 --
--- Name: sample_type; Type: TYPE; Schema: dorothy; Owner: postgres
---
-
-CREATE TYPE sample_type AS ENUM (
-    'mz',
-    'pe',
-    'elf'
-);
-
-
-ALTER TYPE dorothy.sample_type OWNER TO postgres;
-
---
--- Name: TYPE sample_type; Type: COMMENT; Schema: dorothy; Owner: postgres
---
-
-COMMENT ON TYPE sample_type IS 'Sample file type';
-
-
---
 -- Name: sanbox_type; Type: TYPE; Schema: dorothy; Owner: postgres
 --
 
@@ -245,7 +225,6 @@ SELECT pg_catalog.setval('analyses_id_seq', 1, true);
 CREATE TABLE samples (
     hash character(64) NOT NULL,
     size integer NOT NULL,
-    type sample_type,
     path character(256),
     filename character(256),
     md5 character(64),
@@ -275,14 +254,6 @@ COMMENT ON COLUMN samples.hash IS 'SHA256 checksum hash';
 --
 
 COMMENT ON COLUMN samples.size IS 'Sample size';
-
-
---
--- Name: COLUMN samples.type; Type: COMMENT; Schema: dorothy; Owner: postgres
---
-
-COMMENT ON COLUMN samples.type IS 'Sample type';
-
 
 --
 -- Name: CONSTRAINT size_notneg ON samples; Type: COMMENT; Schema: dorothy; Owner: postgres
@@ -1323,7 +1294,7 @@ COPY roles (id, type, comment) FROM stdin;
 -- Data for Name: samples; Type: TABLE DATA; Schema: dorothy; Owner: postgres
 --
 
-COPY samples (hash, size, type, path, filename, md5, long_type) FROM stdin;
+COPY samples (hash, size, path, filename, md5, long_type) FROM stdin;
 \.
 
 

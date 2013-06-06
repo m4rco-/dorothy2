@@ -7,9 +7,9 @@
 require 'rubygems'
 require 'trollop'
 require 'dorothy2'
-#require 'doroParser'
+require 'doroParser'
 
-load '../lib/doroParser.rb'
+#load '../lib/doroParser.rb'
 
 include Dorothy
 include DoroParser
@@ -64,10 +64,22 @@ LOGGER = DoroLogger.new(logout, DoroSettings.env[:logage])
 LOGGER.sev_threshold = DoroSettings.env[:loglevel]
 
 begin
+
+rescue
+  exit(1)
+
+end
+
+
+
+begin
   DoroParser.start(daemon)
 rescue => e
   puts "[PARSER]".yellow + " An error occurred: ".red + $!
-  puts "[PARSER]".yellow + " For more information check the logfile" + $! if daemon
+  if daemon
+  puts "[PARSER]".yellow + " For more information check the logfile" + $!
+  puts "[PARSER]".yellow + "Dorothy-Parser has been stopped"
+  end
   LOGGER_PARSER.error "Parser", "An error occurred: " + $!
   LOGGER_PARSER.debug "Parser", "#{e.inspect} --BACKTRACE: #{e.backtrace}"
   LOGGER_PARSER.info "Parser", "Dorothy-Parser has been stopped"
