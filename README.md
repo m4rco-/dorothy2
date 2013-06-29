@@ -180,8 +180,6 @@ or
         $ brew install libmagic
         $ brew link libmagic
 
-4. Install the xtractr gem, for a detailed howto, go [here](https://code.google.com/p/pcapr/wiki/Xtractr).
-
 ### 3. Install Dorothy gem
 
 *Install Dorothy gem
