@@ -227,14 +227,18 @@ The first time you execute Dorothy, it will ask you to fill those information in
       --infoflow, -i:   Print the analysis flow
     --source, -s <s>:   Choose a source (from the ones defined in etc/sources.yml)
         --daemon, -d:   Stay in the background, by constantly pooling datasources
- --SandboxUpdate, -S:   Update Dorothive with the new Sandbox file
- --DorothiveInit, -D:   (RE)Install the Dorothy Database (Dorothive)
+  --SandboxUpdate, -S:   Update Dorothive with the new Sandbox file
+  --DorothiveInit, -D:   (RE)Install the Dorothy Database (Dorothive)
           --help, -h:   Show this message
 
 
  >Example
 >
      $dorothy_start -v -s malwarefolder
+
+After the execution, if everything went fine, you will find the analysis output (screens/pcap/bin) into the analysis folder that you have configured e.g. dorothy/opt/analyzed/[:digit:]/
+Other information will be stored into Dorothive.
+If executed in daemon mode, Dorothy2 will poll the datasources every X seconds (where X is defined by the "dtimeout:" field in the configuration file) looking for new binaries.
 
 ### DoroParser usage:
 
@@ -250,6 +254,9 @@ The first time you execute Dorothy, it will ask you to fill those information in
      $dparser_start -d start
      $dparser_stop
 
+
+After the execution, if everything went fine, doroParser will store all the donwloaded files into the binary's analysis folder e.g. dorothy/opt/analyzed/[:digit:]/downloads
+Other information -i.e. Network data- will be stored into Dorothive.
 If executed in daemon mode, DoroParser will poll the database every X seconds (where X is defined by the "dtimeout:" field in the configuration file) looking for new pcaps that has been inserted.
 
 ###6. Debugging problems

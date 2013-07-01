@@ -10,7 +10,7 @@ module Dorothy
 
     def init_home(home)
       puts "INIT".yellow + " Creating Directoy structure in #{home}"
-      Dir.mkdir(home)
+      Dir.mkdir(home) unless Util.exists?("#{home}")
       unless Util.exists?("#{home}/opt")
         Dir.mkdir("#{home}/opt")
         Dir.mkdir("#{home}/opt/bins")
@@ -45,6 +45,7 @@ module Dorothy
         conf["nam"] = Hash.new
         conf["virustotal"] = Hash.new
         conf["esx"] = Hash.new
+        conf["pcapr"] = Hash.new
 
 
         ################################################
@@ -58,10 +59,7 @@ module Dorothy
 
         home = conf["env"]["home"]
 
-        unless Util.exists?(home)
-          self.init_home(home)
-        end
-
+        self.init_home(home)
 
 
 
@@ -69,7 +67,7 @@ module Dorothy
 
         conf["env"]["pidfile"] = "#{home}/var/dorothy.pid"
         conf["env"]["pidfile_parser"] = "#{home}/var/doroParser.pid"
-        conf["env"]["analysis_dir"] = "#{home}/opt/analyzed"   # TODO if doesn't exist, create it. -> Dir.mkdir("mynewdir")
+        conf["env"]["analysis_dir"] = "#{home}/opt/analyzed"
         conf["env"]["geoip"] = "#{home}/etc/geo/GeoLiteCity.dat"
         conf["env"]["geoasn"] = "#{home}/etc/geo/GeoIPASNum.dat"
 
@@ -93,8 +91,8 @@ module Dorothy
         puts "DB Name [dorothive]:"
         conf["dorothive"]["dbname"] = (t = gets.chop).empty? ? "dorothive" : t
 
-        puts "DB Username [dorothy]:"
-        conf["dorothive"]["dbuser"] = (t = gets.chop).empty? ? "dorothy" : t
+        puts "DB Username [postgres]:"
+        conf["dorothive"]["dbuser"] = (t = gets.chop).empty? ? "postgres" : t
 
         puts "DB Password"
         conf["dorothive"]["dbpass"] = gets.chop
@@ -148,11 +146,11 @@ module Dorothy
         puts "Username [dorothy] :"
         conf["nam"]["user"] = (t = gets.chop).empty? ? "dorothy" : t
 
-        puts "SSH Port [22] :"
-        conf["nam"]["port"] = (t = gets.chop).empty? ? 22 : t
-
         puts "Password:"
         conf["nam"]["pass"] = gets.chop
+
+        puts "SSH Port [22] :"
+        conf["nam"]["port"] = (t = gets.chop).empty? ? 22 : t
 
         puts "Folder where to store PCAP files [~/pcaps]"
         conf["nam"]["pcaphome"] = (t = gets.chop).empty? ? "~/pcaps" : t

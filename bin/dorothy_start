@@ -116,7 +116,7 @@ rescue => e
   if e.inspect =~ /exist/
     puts "WARNING".yellow + " The database doesn't exist yet. Press Enter to load the ddl into the DB"
     gets
-    Util.init_db(true)
+    Util.init_db(DoroSettings.dorothive[:ddl])
     exit(0)
   else
     puts "ERROR".red + " Can't connect to the database"
