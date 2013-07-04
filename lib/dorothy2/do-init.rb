@@ -152,8 +152,8 @@ module Dorothy
         puts "SSH Port [22] :"
         conf["nam"]["port"] = (t = gets.chop).empty? ? 22 : t
 
-        puts "Folder where to store PCAP files [~/pcaps]"
-        conf["nam"]["pcaphome"] = (t = gets.chop).empty? ? "~/pcaps" : t
+        puts "Folder where to store PCAP files [/home/dorothy/pcaps]"
+        conf["nam"]["pcaphome"] = (t = gets.chop).empty? ? "/home/dorothy/pcaps" : t
 
         ######################################################
         ###PCAPR
