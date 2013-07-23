@@ -7,7 +7,7 @@ module Dorothy
   #Dorothy module-class for managig the virtual sandboxes
   class Doro_VSM
 
-    #ESX5 interface
+    #ESX vSphere5 interface
     class ESX
 
       #Creates a new instance for communicating with ESX through the vSpere5's API
@@ -32,8 +32,24 @@ module Dorothy
 
         #AUTHENTICATION
         guestauth = {:interactiveSession => false, :username => guestuser, :password => guestpass}
-        @auth=RbVmomi::VIM::NamePasswordAuthentication(guestauth)
-        abort if am.ValidateCredentialsInGuest(:vm => @vm, :auth => @auth) != nil
+        r = 0
+        begin
+          @auth=RbVmomi::VIM::NamePasswordAuthentication(guestauth)
+          abort if am.ValidateCredentialsInGuest(:vm => @vm, :auth => @auth) != nil
+        rescue RbVmomi::Fault => e
+          if e.inspect =~ /InvalidPowerState/
+            if r <= 5
+              r = r+1
+              LOGGER.debug "VSM", "VM busy (maybe still revertig, retrying.."
+              sleep 2
+              retry
+            end
+            LOGGER.error "VSM", "Error, can't connect to VM #{@vm[:name]}"
+            LOGGER.debug "VSM", e
+            raise "VSM Error"
+          end
+        end
+
       end
 
       def revert_vm
@@ -55,36 +71,64 @@ module Dorothy
 
       end
 
-      def exec_file(filename, arguments="")
-        filepath = "C:\\#{filename}"
+      def exec_file(filename, program)
+        program["prog_args"].nil? ? args = "" : args = program["prog_args"]
+        args << " #{filename}"
+        cmd = { :programPath => program["prog_path"], :arguments => args }
 
-        if File.extname(filename) == ".dll"
-          cmd = { :programPath => "C:\\windows\\system32\\rundll32.exe", :arguments => filepath}
-          LOGGER.info "VSM", ".:: Executing dll #{filename}"
-
-        else
-          cmd = { :programPath => filepath, :arguments => arguments }
-        end
+        LOGGER.info "VSM", "Executing #{filename} with #{program["prog_name"]}"
 
         pid = @pm.StartProgramInGuest(:vm => @vm , :auth => @auth, :spec => cmd )
         pid.to_i
       end
 
-      def check_internet
-         exec_file("windows\\system32\\ping.exe", "-n 1 www.google.com")  #make www.google.com customizable, move to doroconf
+      def exec_file_raw(filename, arguments="")
+        filepath = "C:\\#{filename}"
+        cmd = { :programPath => filepath, :arguments => arguments }
+        pid = @pm.StartProgramInGuest(:vm => @vm , :auth => @auth, :spec => cmd )
+        pid.to_i
       end
 
+      def check_internet
+        exec_file_raw("windows\\system32\\ping.exe", "-n 1 www.google.com")  #make www.google.com customizable, move to doroconf
+      end
 
       def get_status(pid)
-        p = @pm.ListProcessesInGuest(:vm => @vm , :auth => @auth, :pids => Array(pid) ).inspect
-        status = (p =~ /exitCode=>([0-9])/ ? $1.to_i : nil )
-        return status
+        p = get_running_procs(pid)
+        p["exitCode"]
       end
 
+      def get_running_procs(pid=nil, save_tofile=false, filename="#{DoroSettings.env[:home]}/etc/baseline_processes.yml")
+        pid = Array(pid) unless pid.nil?
+        @pp2 = Hash.new
+        procs = @pm.ListProcessesInGuest(:vm => @vm , :auth => @auth, :pids => pid )
+        procs.each {|pp2| @pp2.merge! Hash[pp2.pid, Hash["pname", pp2.name, "owner", pp2.owner, "cmdLine", pp2.cmdLine, "startTime", pp2.startTime, "endTime", pp2.endTime, "exitCode", pp2.exitCode]]}
+        if save_tofile
+          Util.write(filename, @pp2.to_yaml)
+          LOGGER.info "VSM", "Current running processes saved to #{filename}"
+        end
+        @pp2
+      end
+
+      def get_new_procs(current_procs, original_procs=BASELINE_PROCS)
+        @new_procs = Hash.new
+        current_procs.each_key {|pid|
+          @new_procs.merge!(Hash[pid, current_procs[pid]]) unless original_procs.has_key?(pid)
+        }
+        @new_procs
+      end
+
+      def get_files(path)
+        fm_files = @fm.ListFilesInGuest(:vm => @vm, :auth=> @auth, :filePath=> path).files
+        @files = Hash.new
+        fm_files.each {|file|
+          @files.merge!(Hash[file.path, Hash[:size, file.size, :type, file.type, :attrs, file.attributes]])
+        }
+        @files
+      end
 
       def screenshot
         a = @vm.CreateScreenshot_Task.wait_for_completion.split(" ")
-        ds = @vm.datastore.find { |ds| ds.name  == a[0].delete("[]")}
         screenpath = "/vmfs/volumes/" + a[0].delete("[]") + "/" + a[1]
         return screenpath
       end

@@ -7,9 +7,9 @@
 require 'rubygems'
 require 'trollop'
 require 'dorothy2'
-require 'doroParser'
+#require 'doroParser'
 
-#load '../lib/doroParser.rb'
+load '../lib/doroParser.rb'
 
 include Dorothy
 include DoroParser
@@ -63,13 +63,17 @@ LOGGER_PARSER.sev_threshold = DoroSettings.env[:loglevel]
 LOGGER = DoroLogger.new(logout, DoroSettings.env[:logage])
 LOGGER.sev_threshold = DoroSettings.env[:loglevel]
 
-begin
-
-rescue
+if system "sh -c 'type startpcapr > /dev/null 2>&1'"
+  pcapr_conf = "#{File.expand_path("~")}/.pcapr_local/config"
+  unless Util.exists?(pcapr_conf)
+    puts "[WARNING]".red + " Pcapr conf not found at #{File.expand_path("~")}/.pcapr_local/config "
+    puts "[WARNING]".red + " Although you have configured Dorothy in order to look for a *local* Pcapr instance,it seems that it is not configured yet,so please run \"startpcapr\" and configure it."
+    exit(1)
+  end
+else
+  puts "[WARNING]".red + "Although you have configured Dorothy in order to look for a *local* Pcapr instance, it seems *NOT INSTALLED* in your system.\n\t Please install it by typing \"sudo gem install pcapr-local\. Then set Pcapr to scan #{DoroSettings.env[:analysis_dir]}"
   exit(1)
-
 end
-
 
 
 begin
@@ -77,8 +81,8 @@ begin
 rescue => e
   puts "[PARSER]".yellow + " An error occurred: ".red + $!
   if daemon
-  puts "[PARSER]".yellow + " For more information check the logfile" + $!
-  puts "[PARSER]".yellow + "Dorothy-Parser has been stopped"
+    puts "[PARSER]".yellow + " For more information check the logfile" + $!
+    puts "[PARSER]".yellow + "Dorothy-Parser has been stopped"
   end
   LOGGER_PARSER.error "Parser", "An error occurred: " + $!
   LOGGER_PARSER.debug "Parser", "#{e.inspect} --BACKTRACE: #{e.backtrace}"

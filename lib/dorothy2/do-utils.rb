@@ -186,7 +186,7 @@ module Dorothy
     def find_vm
       vm = @db.exec("SELECT id, hostname, ipaddress, username, password FROM dorothy.sandboxes where is_available is true").first
       if vm.nil?
-        LOGGER.warn "DB","At this time there are no free VM available"
+        LOGGER.debug "DB","At this time there are no free VM available"  if VERBOSE
         return false
       else
         @db.exec("UPDATE dorothy.sandboxes set is_available = false where id = '#{vm["id"]}'")
@@ -246,8 +246,8 @@ module Dorothy
       sha = Digest::SHA2.new
       md5 = Digest::MD5.new
       @binpath = file
-      @filename = File.basename file
-      @extension = File.extname file
+      @filename = File.basename(file)
+      @extension = File.extname(file)[1..-1]
 
       File.open(file, 'rb') do |fh1|
         while buffer1 = fh1.read(1024)
@@ -267,11 +267,11 @@ module Dorothy
       if @extension.empty?    #no extension, trying to put the right one..
         case @type
           when /^PE32/ then
-            @extension = (@type =~ /DLL/ ? ".dll" : ".exe")
+            @extension = (@type =~ /DLL/ ? "dll" : "exe")
           when /^MS-DOS/ then
-            @extension = ".bat"
+            @extension = "bat"
           when /^HTML/ then
-            @extension = ".html"
+            @extension = "html"
           else
             @extension = nil
         end

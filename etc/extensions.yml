@@ -1,0 +1,34 @@
+#############################################
+### DOROTHY EXTENSION MANAGER               #
+#############################################
+### Choose how do you want to open the the
+### binaries into the Sandbox VM.
+### You can add as much extensions as you
+### want.
+#############################################
+---
+exe:
+  prog_name: Windows CMD.exe
+  prog_path: C:\windows\system32\cmd.exe
+  prog_args: /C
+
+dll:
+  prog_name: Windows Rundll32.exe
+  prog_path: C:\windows\system32\rundll32.exe
+  prog_args:
+
+html:
+  prog_name: Microsoft Explorer IEXPLORE.EXE
+  prog_path: C:\windows\system32\cmd.exe
+  prog_args: /C start "C:\\Programmi\\Internet Explorer\\IEXPLORE.EXE"
+
+#doc:
+#  prog_name: Microsoft Word 2003
+#  prog_path:
+#  prog_args:
+
+#pdf:
+#  prog_name: Acrobat Reader Version 1.0
+#  prog_path:
+#  prog_args:
+

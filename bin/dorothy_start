@@ -6,9 +6,9 @@
 
 require 'rubygems'
 require 'trollop'
-require 'dorothy2'          #comment for testing/developmnet
+#require 'dorothy2'          #comment for testing/developmnet
 
-#load '../lib/dorothy2.rb'  #uncomment for testing/developmnet
+load '../lib/dorothy2.rb'  #uncomment for testing/developmnet
 
 include Dorothy
 
@@ -34,8 +34,10 @@ opts = Trollop.options do
 
   opt :verbose, "Enable verbose mode"
   opt :infoflow, "Print the analysis flow"
+  opt :baseline, "Create a new process baseline"
   opt :source, "Choose a source (from the ones defined in etc/sources.yml)", :type => :string
   opt :daemon, "Stay in the backround, by constantly pooling datasources"
+  opt :manual, "Start everyrhing, copy the file, and wait for me."
   opt :SandboxUpdate, "Update Dorothive with the new Sandbox file"
   opt :DorothiveInit, "(RE)Install the Dorothy Database (Dorothive)", :type => :string
 
@@ -57,7 +59,8 @@ if opts[:infoflow]
 	#9) Try to retreive malware info from VirusTotal
 	#10) Insert data into Dorothy-DB
 	------------------------------------------
-	"
+"
+
   exit(0)
 end
 
@@ -75,11 +78,19 @@ puts "
 HOME = File.expand_path("..",File.dirname(__FILE__))
 VERBOSE = (opts[:verbose] ? true : false)
 daemon = (opts[:daemon] ? true : false)
+MANUAL =  (opts[:manual] ? true : false)
+
+if MANUAL && daemon
+  "[Dorothy]".yellow + " Manual and Deamon modes can't be executed together"
+  exit(1)
+end
+
 
 #DEFAULT CONF FILES
 #conf = HOME + '/etc/dorothy.yml'
 
 conf = "#{File.expand_path("~")}/.dorothy.yml"
+
 
 #LOAD ENV
 if Util.exists?(conf)
@@ -87,12 +98,28 @@ if Util.exists?(conf)
   else
   DoroConfig.create
   exit(0)
-end
+  end
+
+
+#LOAD EXTENSION MGT FILE
+EXTENSIONS=YAML.load_file("#{DoroSettings.env[:home]}/etc/extensions.yml")
+
+
 
 #Logging
 logout = (daemon ? DoroSettings.env[:logfile] : STDOUT)
 LOGGER = DoroLogger.new(logout, DoroSettings.env[:logage])
 LOGGER.sev_threshold = DoroSettings.env[:loglevel]
+
+
+if opts[:baseline]
+  puts "[DOROTHY]".yellow + "Creating a new process baseline."
+  Dorothy.run_baseline
+  puts "[WARNING]".red + "Baseline run finished."
+  exit(0)
+end
+
+
 
 home = DoroSettings.env[:home]
 #check homefolder
@@ -102,6 +129,7 @@ end
 
 sfile = home + '/etc/sources.yml'
 sboxfile = home + '/etc/sandboxes.yml'
+baseline_procs = home + '/etc/baseline_processes.yml'
 
 if opts[:DorothiveInit]
   Util.init_db(opts[:DorothiveInit])
@@ -152,6 +180,15 @@ unless Util.exists?(sboxfile)
   DoroConfig.create_sandbox(sboxfile)
   DoroConfig.init_sandbox(sboxfile)
 end
+
+unless Util.exists?(baseline_procs)
+  puts "[WARNING]".red + " There is no process-baseline file yet, Dorothy is going to create one."
+  Dorothy.run_baseline
+  puts "[WARNING]".red + "Baseline run finished."
+  exit(0)
+end
+
+BASELINE_PROCS = YAML.load_file(baseline_procs)
 
 #Check DB sandbox data
 if db.table_empty?("sandboxes")

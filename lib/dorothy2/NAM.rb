@@ -20,8 +20,8 @@ module Dorothy
 
     def start_sniffer(vmaddress, interface, name, pcaphome)
       Net::SSH.start(@server, @user, :password => @pass, :port =>@port) do |@ssh|
-        # @ssh.exec "nohup sudo tcpdump -i eth0 -s 1514 -w ~/pcaps/#{name}.pcap host #{vmaddress} > blah.log 2>&1 & "
-        @ssh.exec "nohup sudo tcpdump -i #{interface} -s 1514 -w #{pcaphome}/#{name}.pcap host #{vmaddress} > log.tmp 2>&1 & "
+        MANUAL ? not_rdp = "and not port 3389" : not_rdp = ""
+        @ssh.exec "nohup sudo tcpdump -i #{interface} -s 1514 -w #{pcaphome}/#{name}.pcap host #{vmaddress} #{not_rdp} 2> log.tmp  & "
         t = @ssh.exec!"ps aux |grep #{vmaddress}|grep -v grep|grep -v bash"
         pid = t.split(" ")[1]
         return pid.to_i

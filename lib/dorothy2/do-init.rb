@@ -1,6 +1,7 @@
 # Copyright (C) 2010-2013 marco riccardi.
 # This file is part of Dorothy - http://www.honeynet.it/
 # See the file 'LICENSE' for copying permission.
+require 'fileutils'
 
 module Dorothy
 
@@ -9,7 +10,7 @@ module Dorothy
     extend self
 
     def init_home(home)
-      puts "INIT".yellow + " Creating Directoy structure in #{home}"
+      puts "[INIT]".yellow + " Creating Directoy structure in #{home}"
       Dir.mkdir(home) unless Util.exists?("#{home}")
       unless Util.exists?("#{home}/opt")
         Dir.mkdir("#{home}/opt")
@@ -24,14 +25,14 @@ module Dorothy
         Dir.mkdir("#{home}/var")
         Dir.mkdir("#{home}/var/log")
       end
-      puts "INIT".yellow + " Done"
+      puts "[INIT]".yellow + " Done\n\n"
     end
 
     def create
 
       puts "
       [WARNING]".red + " It seems that the Dorothy configuration file is not present,
-      please answer to the following question in order to create it now.
+                please answer to the following question in order to create it now.
       "
 
       correct = false
@@ -58,10 +59,6 @@ module Dorothy
         conf["env"]["home"] = (t = gets.chop).empty? ? HOME : t
 
         home = conf["env"]["home"]
-
-        self.init_home(home)
-
-
 
         puts "The Dorothy home directory is #{home}"
 
@@ -123,11 +120,16 @@ module Dorothy
         puts "Insert the time (seconds) that the Sandbox should be run before it's reverted [60]"
         conf["sandbox"]["sleeptime"] = (t = gets.chop).empty? ? 60 : t
 
-        puts "Insert the time (seconds) when Dorothy should take the first screenshot [1]"
-        conf["sandbox"]["screen1time"] = (t = gets.chop).empty? ? 1 : t
+        puts "Insert how many screenshots do you want to take [1]"
+        conf["sandbox"]["num_screenshots"] = (t = gets.chop).empty? ? 1 : t.to_i
 
-        puts "Insert the time (seconds) when Dorothy should take the second screenshot [15]"
-        conf["sandbox"]["screen2time"] = (t = gets.chop).empty? ? 15 : t
+        if conf["sandbox"]["num_screenshots"] > 1
+          puts "Insert the time interval (seconds) between each screenshot [5] "
+          conf["sandbox"]["screen2time"] = (t = gets.chop).empty? ? 5 : t
+        end
+
+        puts "After how many seconds do you want to take the first screenshot? [1]"
+        conf["sandbox"]["screen1time"] = (t = gets.chop).empty? ? 1 : t
 
         ######################################################
         ###NAM
@@ -152,8 +154,8 @@ module Dorothy
         puts "SSH Port [22] :"
         conf["nam"]["port"] = (t = gets.chop).empty? ? 22 : t
 
-        puts "Folder where to store PCAP files [~/pcaps]"
-        conf["nam"]["pcaphome"] = (t = gets.chop).empty? ? "~/pcaps" : t
+        puts "Folder where to store PCAP files [/home/#{conf["nam"]["user"]}/pcaps]"
+        conf["nam"]["pcaphome"] = (t = gets.chop).empty? ? "/home/#{conf["nam"]["user"]}/pcaps" : t
 
         ######################################################
         ###PCAPR
@@ -161,11 +163,22 @@ module Dorothy
 
         puts "\n######### [" + " Pcapr configuration ".red + "] #########"
 
-        puts "Host [NAM: #{conf["nam"]["host"]}]:"
-        conf["pcapr"]["host"] = (t = gets.chop).empty? ? conf["nam"]["host"] : t
+        puts "Are you going to use Pcapr on this machine? [yes] WARNING: Pcapr is only compatible with Linux "
 
-        puts "Port [8080]:"
+        t = gets.chop
+        if t.empty? || t == "y" || t == "yes"
+          conf["pcapr"]["local"] = true
+          puts "[WARNING]".yellow + " Be careful in setting Pcapr to scan #{conf["env"]["analysis_dir"]}"
+          conf["pcapr"]["host"] = "localhost"
+        else
+          conf["pcapr"]["local"] = false
+          puts "Pcapr Host [NAM: #{conf["nam"]["host"]}]:"
+          conf["pcapr"]["host"] = (t = gets.chop).empty? ? conf["nam"]["host"] : t
+        end
+
+        puts "Pcapr HTTP Port [8080]:"
         conf["pcapr"]["port"] = (t = gets.chop).empty? ? 8080 : t
+
 
         ######################################################
         ###VIRUS TOTAL
@@ -179,11 +192,7 @@ module Dorothy
         puts "Enable test mode? In test mode dorothy will avoid to poll Virustotal [y]"
 
         t = gets.chop
-        if t.empty? || t == "y" || t == "yes"
-          conf["env"]["testmode"] = true
-        else
-          conf["env"]["testmode"] = false
-        end
+        (t.empty? || t == "y" || t == "yes") ? conf["env"]["testmode"] = true : conf["env"]["testmode"] = false
 
         ##########CONF FINISHED##################
 
@@ -192,11 +201,18 @@ module Dorothy
 
         t = gets.chop
         if t.empty? || t == "y" || t == "yes"
-          File.open("#{File.expand_path("~")}/.dorothy.yml", 'w+') {|f| f.write(conf.to_yaml) }
-          FileUtils.ln_s("#{File.expand_path("~")}/.dorothy.yml", "#{home}/etc/dorothy.yml")
-          correct = true
-          puts "Configuration file has been saved in ~/.dorothy.conf and a symlink has been created in\n#{home}/etc/dorothy.yml for an easier edit. You can either modify such file directly."
-          puts "\n######### [" + " Now you can restart dorothy, enjoy! ".yellow + "] #########"
+          begin
+            self.init_home(home)
+            File.open("#{File.expand_path("~")}/.dorothy.yml", 'w+') {|f| f.write(conf.to_yaml) }
+            FileUtils.ln_s("#{File.expand_path("~")}/.dorothy.yml", "#{home}/etc/dorothy.yml") unless Util.exists?("#{home}/etc/dorothy.yml")
+            correct = true
+            puts "Configuration file has been saved in ~/.dorothy.conf and a symlink has been created in\n#{home}/etc/dorothy.yml for an easier edit."
+            puts "\n######### [" + " Now you can restart dorothy, enjoy! ".yellow + "] #########"
+          rescue => e
+            puts e.inspect
+            puts "[ERROR]".red + " Configuration aborted, please redo."
+            FileUtils.rm("#{home}/etc/dorothy.yml")
+          end
         else
           puts "Please reinsert the info"
           correct = false
