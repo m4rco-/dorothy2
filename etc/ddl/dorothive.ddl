@@ -1072,6 +1072,32 @@ ALTER SEQUENCE whois_id_seq OWNED BY whois.id;
 SELECT pg_catalog.setval('whois_id_seq', 1, false);
 
 
+
+
+
+--
+-- Name: sys_procs; Type: TABLE; Schema: dorothy; Owner: postgres; Tablespace:
+--
+
+CREATE TABLE dorothy.sys_procs
+(
+  analysis_id integer NOT NULL,
+  pid integer NOT NULL,
+  name character varying,
+  owner character varying,
+  "cmdLine" character varying,
+  "startTime" timestamp without time zone,
+  "endTime" timestamp without time zone,
+  "exitCode" integer,
+  CONSTRAINT "procs-pk" PRIMARY KEY (analysis_id , pid ),
+  CONSTRAINT "anal_id-fk" FOREIGN KEY (analysis_id)
+      REFERENCES dorothy.analyses (id) MATCH SIMPLE
+      ON UPDATE NO ACTION ON DELETE NO ACTION
+)
+
+
+ALTER TABLE dorothy.sys_procs OWNER TO postgres;
+
 --
 -- Name: id; Type: DEFAULT; Schema: dorothy; Owner: postgres
 --

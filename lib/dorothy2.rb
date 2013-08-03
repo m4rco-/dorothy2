@@ -2,7 +2,7 @@
 # This file is part of Dorothy - http://www.honeynet.it/
 # See the file 'LICENSE' for copying permission.
 
-##for irb debug:
+##.for irb debug:
 ##from $home, irb and :
 ##load 'lib/dorothy2.rb'; include Dorothy; LOGGER = DoroLogger.new(STDOUT, "weekly"); DoroSettings.load!('etc/dorothy.yml'); VERBOSE = true
 
@@ -33,11 +33,12 @@ require File.dirname(__FILE__) + '/dorothy2/NAM'
 require File.dirname(__FILE__) + '/dorothy2/BFM'
 require File.dirname(__FILE__) + '/dorothy2/do-utils'
 require File.dirname(__FILE__) + '/dorothy2/do-logger'
+require File.dirname(__FILE__) + '/dorothy2/version'
 
 module Dorothy
 
-  def get_time
-    time = Time.new
+  def get_time(local=Time.new)
+    time = local
     time.utc.strftime("%Y-%m-%d %H:%M:%S")
   end
 
@@ -71,8 +72,8 @@ module Dorothy
     if EXTENSIONS.key?(bin.extension)
       true
     else
-      LOGGER.warn("SANDBOX", "File extension #{bin.extension} currently not configured in etc/extensions.yml, skipping")
-      LOGGER.debug("SANDBOX", "Filtype: #{bin.type}") if VERBOSE
+      LOGGER.warn("VSM", "File extension #{bin.extension} currently not configured in etc/extensions.yml, skipping")
+      LOGGER.debug("VSM", "Filtype: #{bin.type}") if VERBOSE
       dir_not_supported = File.dirname(bin.binpath) + "/not_supported"
       Dir.mkdir(dir_not_supported) unless File.exists?(dir_not_supported)
       FileUtils.cp(bin.binpath,dir_not_supported) #mv?
@@ -87,7 +88,6 @@ module Dorothy
     #RESERVING AN ANALYSIS ID
     db = Insertdb.new
     anal_id = db.get_anal_id
-    reverted = false
 
     #set home vars
     sample_home = DoroSettings.env[:analysis_dir] + "/#{anal_id}"
@@ -96,13 +96,14 @@ module Dorothy
     bin.dir_screens = "#{sample_home}/screens/"
     bin.dir_downloads = "#{sample_home}/downloads/"
 
+    vm_log_header = "VM#{guestvm[0]} ".yellow + "[" + "#{anal_id}".red + "] "
 
-    LOGGER.info "SANDBOX", "VM#{guestvm[0]} ".yellow + "[" + "#{anal_id}".red + "]" + " Analyzing binary #{bin.filename}"
+    LOGGER.info "VSM", vm_log_header + "Analyzing binary #{bin.filename}"
 
     begin
       #crate dir structure in analisys home
       unless File.directory?(sample_home)
-        LOGGER.info "VSM","VM#{guestvm[0]} ".yellow + "Creating DIRS"
+        LOGGER.info "VSM",vm_log_header + "Creating DIRS"
         Dir.mkdir sample_home
         Dir.mkdir bin.dir_bin
         Dir.mkdir bin.dir_pcap
@@ -117,7 +118,7 @@ module Dorothy
         end
 
       else
-        LOGGER.warn "SANDBOX","Malware #{bin.md5} sample_home already present, WTF!? Skipping.."
+        LOGGER.warn "VSM",vm_log_header + "Malware #{bin.md5} sample_home already present, WTF!? Skipping.."
         #print "\n"
         return false
       end
@@ -128,9 +129,11 @@ module Dorothy
 
 
       #Creating a new VSM object for managing the SandBox VM
-      LOGGER.info "VSM","VM#{guestvm[0]} ".yellow + "Connecting to ESX Server #{DoroSettings.esx[:host]}"
+      LOGGER.info "VSM",vm_log_header + "Connecting to ESX Server #{DoroSettings.esx[:host]}"
 
       vsm = Doro_VSM::ESX.new(DoroSettings.esx[:host],DoroSettings.esx[:user],DoroSettings.esx[:pass],guestvm[1], guestvm[3], guestvm[4])
+      reverted = false
+
 
       #Copy File to VM
       r = 0
@@ -140,18 +143,18 @@ module Dorothy
       rescue
         if r <= 2
           r = r+1
-          LOGGER.warn "SANDBOX","VM#{guestvm[0]}".yellow + " GUESTOS Connection problem to Internet, retry n. #{r}/3"
+          LOGGER.warn "VSM",vm_log_header + " GUESTOS Connection problem to Internet, retry n. #{r}/3"
           sleep 20
           retry
         end
-        LOGGER.error "SANDBOX", "VM#{guestvm[0]}".yellow + " Guest system is not able to connect to internet"
+        LOGGER.error "VSM", vm_log_header + " Guest system is not able to connect to internet"
         r = 0
         retry
       end
 
 
 
-      LOGGER.info "VSM","VM#{guestvm[0]} ".yellow + "Copying #{bin.md5} to VM"
+      LOGGER.info "VSM",vm_log_header + "Copying #{bin.md5} to VM"
 
       filecontent = File.open(bin.binpath, "rb") { |byte| byte.read } #load filebinary
       vsm.copy_file(bin.filename,filecontent)
@@ -159,20 +162,20 @@ module Dorothy
       #Start Sniffer
       dumpname = anal_id.to_s + "-" + bin.md5
       pid = @nam.start_sniffer(guestvm[2],DoroSettings.nam[:interface], dumpname, DoroSettings.nam[:pcaphome])
-      LOGGER.info "NAM","VM#{guestvm[0]} ".yellow + "Start sniffing module"
-      LOGGER.debug "NAM","VM#{guestvm[0]} ".yellow + "Tcpdump instance #{pid} started" if VERBOSE
+      LOGGER.info "NAM",vm_log_header + "Start sniffing module"
+      LOGGER.debug "NAM",vm_log_header + "Tcpdump instance #{pid} started" if VERBOSE
 
-      sleep 5
+      #sleep 5
 
       @screenshots = Array.new
 
       #Execute File into VM
-      LOGGER.info "VSM","VM#{guestvm[0]} ".yellow + "Executing #{bin.md5} File into VM"
+      LOGGER.info "VSM",vm_log_header + "Executing #{bin.md5} with #{EXTENSIONS["prog_args"]}"
 
       if MANUAL
-        LOGGER.debug "VSM","VM#{guestvm[0]} ".yellow + " MANUAL mode detected. You can now logon to rdp:// "
+        LOGGER.debug "VSM",vm_log_header + " MANUAL mode detected. You can now logon to rdp:// "
 
-        LOGGER.info "MANUAL-MODE","VM#{guestvm[0]} ".yellow + "
+        LOGGER.info "MANUAL-MODE",vm_log_header + "
 
           Choose your next action:
           1) Take Screenshot
@@ -187,31 +190,31 @@ module Dorothy
           case answer
             when "1" then
               @screenshots.push vsm.screenshot
-              LOGGER.info "MANUAL-MODE","VM#{guestvm[0]} ".yellow +  "Screenshot taken"
+              LOGGER.info "MANUAL-MODE",vm_log_header +  "Screenshot taken"
             when "2"
               @current_procs = vsm.get_running_procs
-              LOGGER.info "MANUAL-MODE","VM#{guestvm[0]} ".yellow +  "Current ProcessList taken"
+              LOGGER.info "MANUAL-MODE",vm_log_header +  "Current ProcessList taken"
             when "3"
               guestpid = vsm.exec_file("C:\\#{bin.filename}",EXTENSIONS[bin.extension])
-              LOGGER.debug "MANUAL-MODE","VM#{guestvm[0]} ".yellow + "Program executed with PID #{guestpid}"
+              LOGGER.debug "MANUAL-MODE",vm_log_header + "Program executed with PID #{guestpid}"
             #when "x" then -- More interactive actions to add
             else
-              LOGGER.info "MANUAL-MODE","VM#{guestvm[0]} ".yellow +  "Please select a number"
+              LOGGER.info "MANUAL-MODE",vm_log_header +  "Please select a number"
           end
           answer = gets.chop
         end
 
-        LOGGER.info "MANUAL-MODE","VM#{guestvm[0]} ".yellow + "Moving forward.."
+        LOGGER.info "MANUAL-MODE",vm_log_header + "Moving forward.."
 
 
       else
         guestpid = vsm.exec_file("C:\\#{bin.filename}",EXTENSIONS[bin.extension])
-        LOGGER.debug "VSM","VM#{guestvm[0]} ".yellow + "Program executed with PID #{guestpid}" if VERBOSE
+        LOGGER.debug "VSM",vm_log_header + "Program executed with PID #{guestpid}" if VERBOSE
         sleep 1
         returncode = vsm.get_status(guestpid)
         raise "The program was not correctly executed into the Sandbox. Status code: #{returncode}" unless returncode == 0 || returncode.nil?
 
-        LOGGER.info "VSM","VM#{guestvm[0]}".yellow + " Sleeping #{DoroSettings.sandbox[:sleeptime]} seconds".yellow
+        LOGGER.info "VSM",vm_log_header + " Sleeping #{DoroSettings.sandbox[:sleeptime]} seconds".yellow
         sleep DoroSettings.sandbox[:screen1time] % DoroSettings.sandbox[:sleeptime]
 
         DoroSettings.sandbox[:num_screenshots].times do
@@ -227,31 +230,31 @@ module Dorothy
       end
 
 
-      #Stopt Sniffer, revert the VM
-      stop_nam_revertvm(@nam, pid, vsm, guestvm[0], reverted, db)
+      #Stop Sniffer, revert the VM
+      stop_nam_revertvm(@nam, pid, vsm, guestvm[0], reverted, vm_log_header)
 
       vsm.revert_vm
       reverted = true
 
       #Analyze new procs
-      LOGGER.info "VSM", "VM#{guestvm[0]} ".yellow + "Checking for spowned processes"
+      LOGGER.info "VSM", vm_log_header + "Checking for spowned processes"
 
       unless @current_procs.nil?
-        procs = vsm.get_new_procs(@current_procs)
-        if procs.size > 0
-          LOGGER.info "VSM", "#{procs.size} new process(es) found"
-          procs.each_key do |pid|
-            LOGGER.info "VSM", "[" + "+".red + "]" + " PID: #{pid}, NAME: #{procs[pid]["pname"]}, COMMAND: #{procs[pid]["cmdLine"]}"
+        @procs = vsm.get_new_procs(@current_procs)
+        if @procs.size > 0
+          LOGGER.info "VSM", vm_log_header + "#{@procs.size} new process(es) found"
+          @procs.each_key do |pid|
+            LOGGER.info "VSM", vm_log_header + "[" + "+".red + "]" + " PID: #{pid}, NAME: #{@procs[pid]["pname"]}, COMMAND: #{@procs[pid]["cmdLine"]}"
           end
         end
       end
 
       #Downloading PCAP
-      LOGGER.info "NAM", "VM#{guestvm[0]} ".yellow + "Downloading #{dumpname}.pcap to #{bin.dir_pcap}"
+      LOGGER.info "NAM", vm_log_header + "Downloading #{dumpname}.pcap to #{bin.dir_pcap}"
       Ssh.download(DoroSettings.nam[:host], DoroSettings.nam[:user],DoroSettings.nam[:pass], DoroSettings.nam[:pcaphome] + "/#{dumpname}.pcap", bin.dir_pcap)
 
       #Downloading Screenshots from esx
-      LOGGER.info "NAM", "VM#{guestvm[0]} ".yellow + "Downloading Screenshots"
+      LOGGER.info "NAM", vm_log_header + "Downloading Screenshots"
 
       @screenshots.each do |screen|
         Ssh.download(DoroSettings.esx[:host],DoroSettings.esx[:user], DoroSettings.esx[:pass], screen, bin.dir_screens)
@@ -259,13 +262,7 @@ module Dorothy
         File.chmod(0644, bin.dir_screens + File.basename(screen), bin.dir_screens + File.basename(screen) )
       end
 
-
-
-
-
-      #####################
-      #UPDATE DOROTHIBE DB#
-      #####################
+      #UPDATE DOROTHIBE DB###################################
 
       dump = Loadmalw.new(bin.dir_pcap + dumpname + ".pcap")
 
@@ -281,12 +278,12 @@ module Dorothy
         pcaprid = Loadmalw.calc_pcaprid(dump.filename, dump.size).rstrip
       end
 
-      LOGGER.debug "NAM", "VM#{guestvm[0]} ".yellow + "Pcaprid: " + pcaprid if VERBOSE
+      LOGGER.debug "NAM", vm_log_header + "Pcaprid: " + pcaprid if VERBOSE
 
       empty_pcap = false
 
       if dump.size <= 30
-        LOGGER.warn "NAM", "VM#{guestvm[0]} WARNING - EMPTY PCAP FILE!!!! ::.."
+        LOGGER.warn "NAM", vm_log_header + "WARNING - EMPTY PCAP FILE!!!! ::.."
         #FileUtils.rm_r(sample_home)
         empty_pcap = true
       end
@@ -296,9 +293,8 @@ module Dorothy
       analysis_values = [anal_id, bin.sha, guestvm[0], dump.sha, get_time]
 
       if pcaprid.nil? || bin.dir_pcap.nil? || bin.sha.nil? || bin.md5.nil?
-        LOGGER.error "SANDBOX", "VM#{guestvm[0]} Can't retrieve the required information"
-        FileUtils.rm_r(sample_home)
-        return false
+        LOGGER.error "VSM", "VM#{guestvm[0]} Can't retrieve the required information"
+        raise "Some info missing.."
       end
 
 
@@ -310,18 +306,27 @@ module Dorothy
       unless empty_pcap
         unless db.insert("traffic_dumps", dumpvalues)
           LOGGER.fatal "DB", "VM#{guestvm[0]} Error while inserting data into table traffic_dumps. Skipping binary #{bin.md5}"
-          FileUtils.rm_r(sample_home)
-          return false
+          raise "DB-ERROR"
         end
       end
 
 
 
       unless db.insert("analyses", analysis_values)
-        LOGGER.fatal "DB", "VM#{guestvm[0]} Error while inserting data into table analyses. Skipping binary #{bin.md5}"
-        FileUtils.rm_r(sample_home)
-        return false
+        LOGGER.fatal "DB", vm_log_header + "Error while inserting data into table analyses. Skipping binary #{bin.md5}"
+        raise "DB-ERROR"
       end
+
+      @procs.each_key do |pid|
+        @procs[pid]["endTime"] ? end_time = get_time(@procs[pid]["endTime"]) : end_time = "null"
+        @procs[pid]["exitCode"] ? exit_code = @procs[pid]["exitCode"] : exit_code = "null"
+        sys_procs_values = [anal_id, pid, @procs[pid]["pname"], @procs[pid]["owner"], @procs[pid]["cmdLine"], get_time(@procs[pid]["startTime"]), end_time, exit_code ]
+        unless db.insert("sys_procs", sys_procs_values)
+          LOGGER.fatal "DB", vm_log_header + "Error while inserting data into table sys_procs. Skipping binary #{bin.md5}"
+          raise "DB-ERROR"
+        end
+      end
+
 
       #TODO ADD RT CODE
 
@@ -329,14 +334,14 @@ module Dorothy
       in_transaction = false
       db.close
 
-      LOGGER.info "VSM", "VM#{guestvm[0]} ".yellow + "Removing file from /bins directory"
+      LOGGER.info "VSM", vm_log_header + "Removing file from /bins directory"
       FileUtils.rm(bin.binpath)
-      LOGGER.info "VSM", "VM#{guestvm[0]} ".yellow + "Process compleated successfully"
+      LOGGER.info "VSM", vm_log_header + "Process compleated successfully"
 
     rescue SignalException
       LOGGER.warn "DOROTHY", "SIGINT".red + " Catched, exiting gracefully."
-      stop_nam_revertvm(@nam, pid, vsm, guestvm[0], reverted, db, in_transaction)
-      LOGGER.debug "SANDBOX", "VM#{guestvm[0]} ".red + "Removing working dir"
+      stop_nam_revertvm(@nam, pid, vsm, guestvm[0], reverted, vm_log_header)
+      LOGGER.debug "VSM", vm_log_header + "Removing working dir"
       FileUtils.rm_r(sample_home)
       if in_transaction
         db.rollback  #rollback in case there is a transaction on going
@@ -344,13 +349,13 @@ module Dorothy
       end
 
     rescue Exception => e
-      LOGGER.error "SANDBOX", "VM#{guestvm[0]} An error occurred while analyzing #{bin.filename}, skipping\n"
+      LOGGER.error "VSM", vm_log_header + "An error occurred while analyzing #{bin.filename}, skipping\n"
       LOGGER.debug "Dorothy" , "#{$!}\n #{e.inspect} \n #{e.backtrace}" if VERBOSE
 
-      LOGGER.warn "DOROTHY", "Stopping NAM instances if presents, reverting the Sandbox, and removing working directory"
+      LOGGER.warn "Dorothy", vm_log_header + "Stopping NAM instances if presents, reverting the Sandbox, and removing working directory"
 
-      stop_nam_revertvm(@nam, pid, vsm, guestvm[0], reverted, db, in_transaction)
-      LOGGER.debug "SANDBOX", "VM#{guestvm[0]} ".red + "Removing working dir"
+      stop_nam_revertvm(@nam, pid, vsm, guestvm[0], reverted, vm_log_header)
+      LOGGER.debug "VSM", vm_log_header + "Removing working dir"
 
       FileUtils.rm_r(sample_home)
 
@@ -359,7 +364,7 @@ module Dorothy
         db.close
       end
 
-      LOGGER.warn "SANDBOX", "VM#{guestvm[0]} ".red + "Recovering finished."
+      LOGGER.warn "VSM", vm_log_header + "Recover finished."
 
 
     end
@@ -367,17 +372,17 @@ module Dorothy
   end
 
 #Stop NAM instance and Revert VM
-def stop_nam_revertvm(nam, pid, vsm, guestvm, reverted, db, in_transaction=false)
+def stop_nam_revertvm(nam, pid, vsm, guestvm, reverted, vm_log_header)
 
   if pid
-    LOGGER.info "VSM", "VM#{guestvm}".yellow + " Stopping sniffing module " + pid.to_s
+    LOGGER.info "VSM", vm_log_header + " Stopping sniffing module " + pid.to_s
     nam.stop_sniffer(pid)
   end
 
-  unless reverted
-    LOGGER.info "VSM", "VM#{guestvm}".yellow + " Reverting VM"
+  unless reverted || vsm.nil?
+    LOGGER.info "VSM", vm_log_header + " Reverting VM"
     vsm.revert_vm
-    sleep 5
+    sleep 3   #wait some seconds for letting the vm revert..
   end
 end
 
@@ -391,14 +396,14 @@ end
     LOGGER.info "VSM","VM#{guestvm[0]}".red + " Sleeping #{DoroSettings.sandbox[:sleeptime]} seconds".yellow
     sleep DoroSettings.sandbox[:sleeptime]
     vsm.get_running_procs(nil, true)  #save on file
-    LOGGER.info "SANDBOX", "VM#{guestvm[0]} ".red + "Reverting VM".yellow
+    LOGGER.info "VSM", "VM#{guestvm[0]} ".red + "Reverting VM".yellow
     vsm.revert_vm
     db.free_vm(guestvm[0])
     db.close
   rescue => e
     LOGGER.error "VSM", "VM#{guestvm[0]} An error occurred while performing the BASELINE run, please retry"
     LOGGER.debug "Dorothy" , "#{$!}\n #{e.inspect} \n #{e.backtrace}" if VERBOSE
-    LOGGER.warn "SANDBOX", "VM#{guestvm[0]} ".red + "[RECOVER] Reverting VM".yellow
+    LOGGER.warn "VSM", "VM#{guestvm[0]} ".red + "[RECOVER] Reverting VM".yellow
     vsm.revert_vm
     db.free_vm(guestvm[0])
     db.close

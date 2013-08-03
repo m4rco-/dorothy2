@@ -54,9 +54,8 @@ module Dorothy
         ################################################
 
         puts "\n######### [" + " Dorothy Environment settings ".red + "] #########"
-
-        puts "Please insert the home folder for dorothy [#{HOME}]"
-        conf["env"]["home"] = (t = gets.chop).empty? ? HOME : t
+        puts "Please insert the home folder for dorothy [#{File.expand_path("~")}/Dorothy]"
+        conf["env"]["home"] = (t = gets.chop).empty? ? "#{File.expand_path("~")}/Dorothy" : t
 
         home = conf["env"]["home"]
 
@@ -205,6 +204,9 @@ module Dorothy
             self.init_home(home)
             File.open("#{File.expand_path("~")}/.dorothy.yml", 'w+') {|f| f.write(conf.to_yaml) }
             FileUtils.ln_s("#{File.expand_path("~")}/.dorothy.yml", "#{home}/etc/dorothy.yml") unless Util.exists?("#{home}/etc/dorothy.yml")
+
+            #copy the default extension file to the user-defined home
+            FileUtils.cp("#{HOME}/etc/extensions.yml", "#{home}/etc/extensions.yml")
             correct = true
             puts "Configuration file has been saved in ~/.dorothy.conf and a symlink has been created in\n#{home}/etc/dorothy.yml for an easier edit."
             puts "\n######### [" + " Now you can restart dorothy, enjoy! ".yellow + "] #########"
@@ -222,6 +224,7 @@ module Dorothy
 
     end
 
+    #Creates the sandbox configuration file
     def create_sandbox(sboxfile)
 
       correct = false

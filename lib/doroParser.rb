@@ -424,7 +424,6 @@ module DoroParser
       #gets
       @insertdb.set_analyzed(dump['hash'])
       @insertdb.commit
-      @insertdb.close
     end
   end
 
@@ -454,6 +453,7 @@ module DoroParser
       sleep DoroSettings.env[:dtimeout].to_i if daemon # Sleeping a while if -d wasn't set, then quit.
     end
     LOGGER_PARSER.info "PARSER" , "There are no more pcaps to analyze.".yellow
+    @insertdb.close
     exit(0)
   end
 

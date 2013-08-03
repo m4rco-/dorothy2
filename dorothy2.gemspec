@@ -14,6 +14,7 @@ Gem::Specification.new do |gem|
   gem.files         = `git ls-files`.split($/)
   gem.executables   = gem.files.grep(%r{^bin/}).map{ |f| File.basename(f) }
   gem.test_files    = gem.files.grep(%r{^(test|spec|features)/})
+  gem.extra_rdoc_files = ["README.md"]
   gem.require_paths = ["lib"]
   gem.add_dependency(%q<net-scp>, [">= 1.0.4"])
   gem.add_dependency(%q<net-ssh>, [">= 2.2.1"])
@@ -30,5 +31,6 @@ Gem::Specification.new do |gem|
   gem.add_dependency(%q<net-dns>, [">= 0.8.0"])
   gem.add_dependency(%q<geoip>, [">= 1.2.1"])
   gem.add_dependency(%q<tmail>, [">= 1.2.7.1"])
+  gem.post_install_message = 'If you are upgrating from a previous version, read the UPDATE file!'
 end
 

@@ -90,7 +90,9 @@ module Dorothy
         elsif value =~ /currval/
           value1 = value
         else
-          value1 = "'#{value}'"
+          #if present, remove ""
+          value.gsub! /^"|"$/, '' if values.class.inspect == "String"
+          value1 = "E'#{value}'"
         end
         if n == values.size
           @sqlstring << value1
@@ -264,7 +266,7 @@ module Dorothy
       @ctime= timetmp.strftime("%m/%d/%y %H:%M:%S")
       @type = fm.file(file)
 
-      if @extension.empty?    #no extension, trying to put the right one..
+      if @extension.nil?    #no extension, trying to put the right one..
         case @type
           when /^PE32/ then
             @extension = (@type =~ /DLL/ ? "dll" : "exe")

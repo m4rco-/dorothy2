@@ -1,3 +1,3 @@
-module Dorothy2
-  VERSION = "1.0.1"
+module Dorothy
+  VERSION = "1.0.9"
 end

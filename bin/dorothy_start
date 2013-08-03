@@ -6,9 +6,9 @@
 
 require 'rubygems'
 require 'trollop'
-#require 'dorothy2'          #comment for testing/developmnet
+require 'dorothy2'          #comment for testing/developmnet
 
-load '../lib/dorothy2.rb'  #uncomment for testing/developmnet
+#load '../lib/dorothy2.rb'  #uncomment for testing/developmnet
 
 include Dorothy
 
@@ -31,7 +31,7 @@ opts = Trollop.options do
 	where [options] are:
   EOS
 
-
+  opt :Version, "Print the current version."
   opt :verbose, "Enable verbose mode"
   opt :infoflow, "Print the analysis flow"
   opt :baseline, "Create a new process baseline"
@@ -61,6 +61,11 @@ if opts[:infoflow]
 	------------------------------------------
 "
 
+  exit(0)
+end
+
+if opts[:Version]
+  puts "Dorothy ".yellow + Dorothy::VERSION
   exit(0)
 end
 
