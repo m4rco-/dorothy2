@@ -5,7 +5,7 @@ require 'dorothy2/version'
 
 Gem::Specification.new do |gem|
   gem.name          = "dorothy2"
-  gem.version       = Dorothy2::VERSION
+  gem.version       = Dorothy::VERSION
   gem.authors       = ["marco riccardi"]
   gem.email         = ["marco.riccardi@honeynet.it"]
   gem.description   = %q{A malware/botnet analysis framework written in Ruby.}
