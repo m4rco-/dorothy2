@@ -7,7 +7,8 @@ For a perfect view of this document (images and links), open it through the proj
 ##Introduction
 
 Dorothy2 is a framework created for mass malware analysis. Currently, it is mainly based on analyzing the network behavior of a virtual machine where a suspicious executable was executed.
-However, static binary analysis and system behavior analysis will be shortly introduced in the next version.
+Additionally, it is able to recognize new spawned processes by comparing them with a previously created baseline.
+Static binary analysis and an improved system behavior analysis will be shortly introduced in the next versions.
 
 Dorothy2 is a continuation of my Bachelor degree's final project ([Dorothy: inside the Storm](https://www.honeynet.it/wp-content/uploads/Dorothy/The_Dorothy_Project.pdf) ) that I presented on Feb 2009.
 The main framework's structure remained almost the same, and it has been fully detailed in my degree's final project or in this short [paper](http://www.honeynet.it/wp-content/uploads/Dorothy/EC2ND-Dorothy.pdf). More information about the whole project can be found on the Italian Honeyproject [website](http://www.honeynet.it).
@@ -109,7 +110,7 @@ It is recommended to follow this step2step process:
         add the following line:
         dorothy  ALL = NOPASSWD: /usr/sbin/tcpdump, /bin/kill
 
-* If you want to install pcapr on this machine (recommended) install also these packages  (refer to this blog [post](https://github.com/pcapr-local/pcapr-local) for a detailed howto)
+* If you want to install pcapr on this machine (if you want to use dorohy from a MacOSX machine, you have to do it) install also these packages  (refer to this blog [post](https://github.com/pcapr-local/pcapr-local) for a detailed howto). However, if you are installing Dorothy into a Linux machine, I recommended you to install pcapr on the same machine where the Dorothy gem was installed.
 
         #apt-get install ruby1.8 rubygems  tshark zip couchdb
 
@@ -180,6 +181,10 @@ or
         $ brew install libmagic
         $ brew link libmagic
 
+In case you want to install pcapr here do this as well:
+
+        $sudo apt-get install tshark zip couchdb
+
 ### 3. Install Dorothy gem
 
 *Install Dorothy gem
@@ -207,6 +212,7 @@ The following message should appear
     * The ESX Virtual machines used for the analysis
 
 The first time you execute Dorothy, it will ask you to fill those information in order to create the required configuration files into the etc/ folder. However, you are free to modify/create such files directly - configuration example files can be found there too.
+Finally, check out the file extensions.yml within the /etc folder: it instructs Dorothy's sandboxes about how to process the binaries to analize.
 
 ###5. Use Dorothy
 1. Copy a .exe or .bat file into $yourdorothyhome/opt/bins/manual/
@@ -221,12 +227,15 @@ The first time you execute Dorothy, it will ask you to fill those information in
 
 	$dorothy_start [options]
 	where [options] are:
+       --Verbose, -V:   Print the current version
        --verbose, -v:   Enable verbose mode
       --infoflow, -i:   Print the analysis flow
+      --baseline, -b:   Create a new process baseline
     --source, -s <s>:   Choose a source (from the ones defined in etc/sources.yml)
         --daemon, -d:   Stay in the background, by constantly pooling datasources
-  --SandboxUpdate, -S:   Update Dorothive with the new Sandbox file
-  --DorothiveInit, -D:   (RE)Install the Dorothy Database (Dorothive)
+        --manual, -m:   Start everything, copy the file, and wait for me.
+  --SandboxUpdate, -S:  Update Dorothive with the new Sandbox file
+  --DorothiveInit, -D:  (RE)Install the Dorothy Database (Dorothive)
           --help, -h:   Show this message
 
 

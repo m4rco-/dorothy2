@@ -37,7 +37,7 @@ opts = Trollop.options do
   opt :baseline, "Create a new process baseline"
   opt :source, "Choose a source (from the ones defined in etc/sources.yml)", :type => :string
   opt :daemon, "Stay in the backround, by constantly pooling datasources"
-  opt :manual, "Start everyrhing, copy the file, and wait for me."
+  opt :manual, "Start everything, copy the file, and wait for me."
   opt :SandboxUpdate, "Update Dorothive with the new Sandbox file"
   opt :DorothiveInit, "(RE)Install the Dorothy Database (Dorothive)", :type => :string
 
@@ -54,10 +54,12 @@ if opts[:infoflow]
 	#4) Execute file into VM
 	#5) Make screenshot
 	#6) Wait X minutes (configure X in the conf file)
-	#7) Stop Sniffer
-	#8) Download Screenshot and trafficdump
-	#9) Try to retreive malware info from VirusTotal
-	#10) Insert data into Dorothy-DB
+  #7) Save the running processes
+	#8) Stop Sniffer
+	#9) Download Screenshot and trafficdump
+	#10) Compare the aquired process list with the one taken during the baseline run. Find the new spawned processes.
+  #11) Try to retreive malware info from VirusTotal
+	#12) Insert data into Dorothy-DB
 	------------------------------------------
 "
 
