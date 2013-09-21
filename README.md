@@ -108,7 +108,7 @@ It is recommended to follow this step2step process:
 
         #visudo
         add the following line:
-        dorothy  ALL = NOPASSWD: /usr/sbin/tcpdump, /bin/kill
+        dorothy  ALL = NOPASSWD: /usr/sbin/tcpdump, /bin/kill, /usr/bin/killall
 
 * If you want to install pcapr on this machine (if you want to use dorohy from a MacOSX machine, you have to do it) install also these packages  (refer to this blog [post](https://github.com/pcapr-local/pcapr-local) for a detailed howto). However, if you are installing Dorothy into a Linux machine, I recommended you to install pcapr on the same machine where the Dorothy gem was installed.
 
