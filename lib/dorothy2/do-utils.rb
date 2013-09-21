@@ -5,7 +5,6 @@
 module Dorothy
 
   module Util
-
     extend self
 
     def write(file, string)
@@ -89,6 +88,8 @@ module Dorothy
           value1 = value
         elsif value =~ /currval/
           value1 = value
+        elsif table == "sys_procs"   #avoiding noising escape-issue for \u
+          value1 = "E'#{value.inspect}'"
         else
           #if present, remove ""
           value.gsub! /^"|"$/, '' if values.class.inspect == "String"
@@ -230,6 +231,7 @@ module Dorothy
     attr_reader :md5
     attr_reader :binpath
     attr_reader :filename
+    attr_reader :full_filename  #here i'm sure that the file has an extension and can be executed by windows
     attr_reader :ctime
     attr_reader :size
     attr_reader :pcapsize
@@ -266,19 +268,24 @@ module Dorothy
       @ctime= timetmp.strftime("%m/%d/%y %H:%M:%S")
       @type = fm.file(file)
 
+
       if @extension.nil?    #no extension, trying to put the right one..
         case @type
           when /^PE32/ then
             @extension = (@type =~ /DLL/ ? "dll" : "exe")
+          when /^COM/ then
+            @extension = "exe"
           when /^MS-DOS/ then
             @extension = "bat"
           when /^HTML/ then
             @extension = "html"
           else
-            @extension = nil
+            @extension = "unknown"
         end
+        @full_filename = @filename + "." +  @extension
+      else
+        @full_filename = @filename
       end
-
 
       @size = File.size(file)
     end

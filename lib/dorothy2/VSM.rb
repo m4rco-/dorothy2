@@ -6,7 +6,6 @@ module Dorothy
 
   #Dorothy module-class for managig the virtual sandboxes
   class Doro_VSM
-
     #ESX vSphere5 interface
     class ESX
 
@@ -73,7 +72,7 @@ module Dorothy
 
       def exec_file(filename, program)
         program["prog_args"].nil? ? args = "" : args = program["prog_args"]
-        args << " #{filename}"
+        args += " #{filename}"
         cmd = { :programPath => program["prog_path"], :arguments => args }
         pid = @pm.StartProgramInGuest(:vm => @vm , :auth => @auth, :spec => cmd )
         pid.to_i
@@ -100,7 +99,7 @@ module Dorothy
         @pp2 = Hash.new
         procs = @pm.ListProcessesInGuest(:vm => @vm , :auth => @auth, :pids => pid )
         procs.each {|pp2| @pp2.merge! Hash[pp2.pid, Hash["pname", pp2.name, "owner", pp2.owner, "cmdLine", pp2.cmdLine, "startTime", pp2.startTime, "endTime", pp2.endTime, "exitCode", pp2.exitCode]]}
-          if save_tofile
+        if save_tofile
           Util.write(filename, @pp2.to_yaml)
           LOGGER.info "VSM", "Current running processes saved to #{filename}"
         end

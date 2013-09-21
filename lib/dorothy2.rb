@@ -44,6 +44,7 @@ module Dorothy
 
 
   def start_analysis(bins)
+    #Create a mutex for monitoring the access to the methods
     @binum = bins.size
     bins.each do |bin|
       next unless check_support(bin)
@@ -56,12 +57,12 @@ module Dorothy
         db.close
       else      #Use multithreading
         @analysis_threads << Thread.new(bin.filename){
-          db = Insertdb.new
-          sleep rand(@binum * 2)  #OPTIMIZE #REVIEW
-          sleep rand(30) while !(guestvm = db.find_vm)  #guestvm struct: array ["sandbox id", "sandbox name", "ipaddress", "user", "password"]
-          analyze(bin, guestvm)
-          db.free_vm(guestvm[0])
-          db.close
+            db = Insertdb.new
+            sleep rand(@binum * 2)  #OPTIMIZE #REVIEW
+            sleep rand(30) while !(guestvm = db.find_vm)  #guestvm struct: array ["sandbox id", "sandbox name", "ipaddress", "user", "password"]
+            analyze(bin, guestvm)
+            db.free_vm(guestvm[0])
+            db.close
         }
       end
     end
@@ -157,7 +158,7 @@ module Dorothy
       LOGGER.info "VSM",vm_log_header + "Copying #{bin.md5} to VM"
 
       filecontent = File.open(bin.binpath, "rb") { |byte| byte.read } #load filebinary
-      vsm.copy_file(bin.filename,filecontent)
+      vsm.copy_file(bin.full_filename,filecontent)    #Using full_filename, we do want to be sure that it has an extension
 
       #Start Sniffer
       dumpname = anal_id.to_s + "-" + bin.md5
@@ -170,20 +171,22 @@ module Dorothy
       @screenshots = Array.new
 
       #Execute File into VM
-      LOGGER.info "VSM",vm_log_header + "Executing #{bin.md5} with #{EXTENSIONS["prog_args"]}"
+      LOGGER.info "VSM",vm_log_header + "Executing #{bin.full_filename} with #{EXTENSIONS[bin.extension]["prog_name"]}"
 
       if MANUAL
         LOGGER.debug "VSM",vm_log_header + " MANUAL mode detected. You can now logon to rdp:// "
 
-        LOGGER.info "MANUAL-MODE",vm_log_header + "
+        menu="
 
           Choose your next action:
           1) Take Screenshot
           2) Take ProcessList
-          3) Execute #{bin.filename}
+          3) Execute #{bin.full_filename}
           0) Continue and revert the machine.
 
           Select a nuber:"
+
+        LOGGER.info "MANUAL-MODE",vm_log_header + menu
         answer = gets.chop
 
         until answer == "0"
@@ -194,12 +197,15 @@ module Dorothy
             when "2"
               @current_procs = vsm.get_running_procs
               LOGGER.info "MANUAL-MODE",vm_log_header +  "Current ProcessList taken"
+              @current_procs.each_key do |pid|
+                LOGGER.info "MANUAL-MODE", vm_log_header + "[" + "+".red + "]" + " PID: #{pid}, NAME: #{@current_procs[pid]["pname"]}, COMMAND: #{@current_procs[pid]["cmdLine"]}"
+              end
             when "3"
-              guestpid = vsm.exec_file("C:\\#{bin.filename}",EXTENSIONS[bin.extension])
+              guestpid = vsm.exec_file("C:\\#{bin.full_filename}",EXTENSIONS[bin.extension])
               LOGGER.debug "MANUAL-MODE",vm_log_header + "Program executed with PID #{guestpid}"
             #when "x" then -- More interactive actions to add
             else
-              LOGGER.info "MANUAL-MODE",vm_log_header +  "Please select a number"
+              LOGGER.info "MANUAL-MODE",vm_log_header +  menu
           end
           answer = gets.chop
         end
@@ -208,7 +214,7 @@ module Dorothy
 
 
       else
-        guestpid = vsm.exec_file("C:\\#{bin.filename}",EXTENSIONS[bin.extension])
+        guestpid = vsm.exec_file("C:\\#{bin.full_filename}",EXTENSIONS[bin.extension])
         LOGGER.debug "VSM",vm_log_header + "Program executed with PID #{guestpid}" if VERBOSE
         sleep 1
         returncode = vsm.get_status(guestpid)
@@ -231,7 +237,7 @@ module Dorothy
 
 
       #Stop Sniffer, revert the VM
-      stop_nam_revertvm(@nam, pid, vsm, guestvm[0], reverted, vm_log_header)
+      stop_nam_revertvm(@nam, pid, vsm, reverted, vm_log_header)
 
       vsm.revert_vm
       reverted = true
@@ -338,9 +344,9 @@ module Dorothy
       FileUtils.rm(bin.binpath)
       LOGGER.info "VSM", vm_log_header + "Process compleated successfully"
 
-    rescue SignalException
+    rescue SignalException, RuntimeError
       LOGGER.warn "DOROTHY", "SIGINT".red + " Catched, exiting gracefully."
-      stop_nam_revertvm(@nam, pid, vsm, guestvm[0], reverted, vm_log_header)
+      stop_nam_revertvm(@nam, pid, vsm, reverted, vm_log_header)
       LOGGER.debug "VSM", vm_log_header + "Removing working dir"
       FileUtils.rm_r(sample_home)
       if in_transaction
@@ -354,7 +360,7 @@ module Dorothy
 
       LOGGER.warn "Dorothy", vm_log_header + "Stopping NAM instances if presents, reverting the Sandbox, and removing working directory"
 
-      stop_nam_revertvm(@nam, pid, vsm, guestvm[0], reverted, vm_log_header)
+      stop_nam_revertvm(@nam, pid, vsm, reverted, vm_log_header)
       LOGGER.debug "VSM", vm_log_header + "Removing working dir"
 
       FileUtils.rm_r(sample_home)
@@ -372,19 +378,19 @@ module Dorothy
   end
 
 #Stop NAM instance and Revert VM
-def stop_nam_revertvm(nam, pid, vsm, guestvm, reverted, vm_log_header)
+  def stop_nam_revertvm(nam, pid, vsm, reverted, vm_log_header)
 
-  if pid
-    LOGGER.info "VSM", vm_log_header + " Stopping sniffing module " + pid.to_s
-    nam.stop_sniffer(pid)
-  end
+    if pid
+      LOGGER.info "VSM", vm_log_header + " Stopping sniffing module " + pid.to_s
+      nam.stop_sniffer(pid)
+    end
 
-  unless reverted || vsm.nil?
-    LOGGER.info "VSM", vm_log_header + " Reverting VM"
-    vsm.revert_vm
-    sleep 3   #wait some seconds for letting the vm revert..
+    unless reverted || vsm.nil?
+      LOGGER.info "VSM", vm_log_header + " Reverting VM"
+      vsm.revert_vm
+      sleep 3   #wait some seconds for letting the vm revert..
+    end
   end
-end
 
 ###Create Baseline
   def run_baseline
@@ -461,22 +467,24 @@ end
     @db = Insertdb.new
     daemon ||= false
 
-    puts "[Dorothy]".yellow +  " Process Started"
+    puts "[" + "+".red + "] " +  "[Dorothy]".yellow +  " Process Started"
 
 
     LOGGER.info "Dorothy", "Started".yellow
 
     if daemon
       check_pid_file DoroSettings.env[:pidfile]
-      puts "[Dorothy]".yellow + " Going in backround with pid #{Process.pid}"
-      puts "[Dorothy]".yellow + " Logging on #{DoroSettings.env[:logfile]}"
+      puts "[" + "+".red + "] " + "[Dorothy]".yellow + " Going in backround with pid #{Process.pid}"
+      puts "[" + "+".red + "] " + "[Dorothy]".yellow + " Logging on #{DoroSettings.env[:logfile]}"
       Process.daemon
       create_pid_file DoroSettings.env[:pidfile]
-      puts "[Dorothy]".yellow +  " Going in backround with pid #{Process.pid}"
+      puts "[" + "+".red + "] " +  "[Dorothy]".yellow +  " Going in backround with pid #{Process.pid}"
     end
 
     #Creating a new NAM object for managing the sniffer
     @nam = Doro_NAM.new(DoroSettings.nam)
+    #Be sure that there are no open tcpdump instances opened
+    @nam.init_sniffer
 
     @vtotal_threads = []
     @vtotal_threads = []
@@ -538,7 +546,7 @@ end
       end
 
       unless stale_pid
-        puts "[Dorothy]".yellow + " Dorothy is already running (pid=#{pid})"
+        puts "[" + "+".red + "] " +  "[Dorothy]".yellow + " Dorothy is already running (pid=#{pid})"
         exit(1)
       end
     end
@@ -549,22 +557,31 @@ end
 
     # Remove pid file during shutdown
     at_exit do
-      Logger.info "Dorothy", "Shutting down." rescue nil
+      LOGGER.info "Dorothy", "Shutting down." rescue nil
       if File.exist? file
         File.unlink file
       end
     end
   end
 
+  def self.stop_running_analyses
+    LOGGER.info "Dorothy", "Killing curent live analysis threads.."
+    @analysis_threads.each { |aThread|
+      aThread.raise
+      aThread.join
+    }
+  end
 ## Sends SIGTERM to process in pidfile. Server should trap this
 # and shutdown cleanly.
   def self.stop
+    puts "[" + "+".red + "]" + " Dorothy is shutting now.."
     LOGGER.info "Dorothy", "Shutting down."
     pid_file = DoroSettings.env[:pidfile]
     if pid_file and File.exist? pid_file
       pid = Integer(File.read(pid_file))
-      Process.kill(-15, -pid)
+      Process.kill(-2,-pid)
       LOGGER.info "Dorothy", "Process #{pid} terminated"
+      puts "[" + "+".red + "]" + " Dorothy Process #{pid} terminated"
     else
       LOGGER.info "Dorothy", "Can't find PID file, is Dorothy really running?"
     end

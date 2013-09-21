@@ -17,7 +17,7 @@ dll:
   prog_path: C:\windows\system32\rundll32.exe
   prog_args:
 
-html:
+html:          # c:\Program Files\Internet Explorer\iexplore.exe" -new
   prog_name: Microsoft Explorer IEXPLORE.EXE
   prog_path: C:\windows\system32\cmd.exe
   prog_args: /C start "C:\\Programmi\\Internet Explorer\\IEXPLORE.EXE"

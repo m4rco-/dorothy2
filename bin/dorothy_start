@@ -120,9 +120,9 @@ LOGGER.sev_threshold = DoroSettings.env[:loglevel]
 
 
 if opts[:baseline]
-  puts "[DOROTHY]".yellow + "Creating a new process baseline."
+  puts "[" + "+".red + "] " +  "[DOROTHY]".yellow + "Creating a new process baseline."
   Dorothy.run_baseline
-  puts "[WARNING]".red + "Baseline run finished."
+  puts "[" + "+".red + "] " +  "[WARNING]".red + "Baseline run finished."
   exit(0)
 end
 
@@ -140,7 +140,7 @@ baseline_procs = home + '/etc/baseline_processes.yml'
 
 if opts[:DorothiveInit]
   Util.init_db(opts[:DorothiveInit])
-  puts "[Dorothy]".yellow + " Database loaded, now you can restart Dorothy!"
+  puts "[" + "+".red + "] " +  "[Dorothy]".yellow + " Database loaded, now you can restart Dorothy!"
   exit(0)
 end
 
@@ -149,12 +149,12 @@ begin
   db = Insertdb.new
 rescue => e
   if e.inspect =~ /exist/
-    puts "WARNING".yellow + " The database doesn't exist yet. Press Enter to load the ddl into the DB"
+    puts "[" + "+".red + "] " +  "WARNING".yellow + " The database doesn't exist yet. Press Enter to load the ddl into the DB"
     gets
     Util.init_db(DoroSettings.dorothive[:ddl])
     exit(0)
   else
-    puts "ERROR".red + " Can't connect to the database"
+    puts "[" + "+".red + "] " +  "ERROR".red + " Can't connect to the database"
     puts e
     exit(0)
   end
@@ -162,9 +162,9 @@ end
 
 
 if opts[:SandboxUpdate]
-  puts "[Dorothy]".yellow + " Loading #{sboxfile} into Dorothive"
+  puts "[" + "+".red + "] " +  "[Dorothy]".yellow + " Loading #{sboxfile} into Dorothive"
   DoroConfig.init_sandbox(sboxfile)
-  puts "[Dorothy]".yellow + " Done."
+  puts "[" + "+".red + "] " +  "[Dorothy]".yellow + " Done."
   exit(0)
 end
 
@@ -178,20 +178,20 @@ if Util.exists?(sfile)
     end
   end
 else
-  puts "[WARNING]".red + " A source file doesn't exist, please crate one into #{home}/etc. See the example file in #{HOME}/etc/sources.yml.example"
+  puts "[" + "+".red + "] " +  "[WARNING]".red + " A source file doesn't exist, please crate one into #{home}/etc. See the example file in #{HOME}/etc/sources.yml.example"
   exit(0)
 end
 
 unless Util.exists?(sboxfile)
-  puts "[WARNING]".red + " There is no sandbox configured yet. Please do it now."
+  puts "[" + "+".red + "] " +  "[WARNING]".red + " There is no sandbox configured yet. Please do it now."
   DoroConfig.create_sandbox(sboxfile)
   DoroConfig.init_sandbox(sboxfile)
 end
 
 unless Util.exists?(baseline_procs)
-  puts "[WARNING]".red + " There is no process-baseline file yet, Dorothy is going to create one."
+  puts "[" + "+".red + "] " +  "[WARNING]".red + " There is no process-baseline file yet, Dorothy is going to create one."
   Dorothy.run_baseline
-  puts "[WARNING]".red + "Baseline run finished."
+  puts "[" + "+".red + "] " +  "[WARNING]".red + "Baseline run finished."
   exit(0)
 end
 
@@ -199,13 +199,13 @@ BASELINE_PROCS = YAML.load_file(baseline_procs)
 
 #Check DB sandbox data
 if db.table_empty?("sandboxes")
-  puts "[WARNING]".red + " No sandbox found in Dorothive, the DB will be filled with " + sboxfile
+  puts "[" + "+".red + "] " +  "[WARNING]".red + " No sandbox found in Dorothive, the DB will be filled with " + sboxfile
   DoroConfig.init_sandbox(sboxfile)
 end
 
 if opts[:source] && !sources.key?(opts[:source])
-  puts "[WARNING]".red + " The selected source is not yet configured.\nThe available sources are: "
-  puts sources.keys
+  puts "[" + "+".red + "] " +  "[WARNING]".red + " The selected source is not yet configured.\nThe available sources are: "
+  puts "[" + "+".red + "] " +  sources.keys
   exit(0)
 end
 
@@ -213,9 +213,11 @@ db.close
 
 begin
   Dorothy.start sources[opts[:source]], daemon
+rescue SignalException
+   Dorothy.stop_running_analyses
 rescue => e
-  puts "[Dorothy]".yellow + " An error occurred: ".red + $!
-  puts "[Dorothy]".yellow + " For more information check the logfile" + $! if daemon
+  puts "[" + "+".red + "] " +  "[Dorothy]".yellow + " An error occurred: ".red + $!
+  puts "[" + "+".red + "] " +  "[Dorothy]".yellow + " For more information check the logfile" + $! if daemon
   LOGGER.error "Dorothy", "An error occurred: " + $!
   LOGGER.debug "Dorothy", "#{e.inspect} --BACKTRACE:  #{e.backtrace}"
   LOGGER.info "Dorothy", "Dorothy has been stopped"
