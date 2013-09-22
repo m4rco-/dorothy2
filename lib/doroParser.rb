@@ -51,8 +51,6 @@ module DoroParser
 
   def search_irc(streamdata)
 
-    util = Util.new
-
     ircvalues = []
     streamdata.each do |m|
       #	if m[1] == 0  #we fetch only outgoing traffic
