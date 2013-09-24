@@ -1,8 +1,8 @@
 #######################################
-#Updating from Dorothy 1.0.x to 1.1.0##
+#Updating from Dorothy 1.0.x to >= 1.0.9##
 #######################################
 
-Dorothy 1.1.0 introduces several features that improve the overall framework.
+Dorothy 1.0.9 introduces several features that improve the overall framework.
 Below, the recommended steps needed to update your Dorothy environment.
 
 a) Remove the Dorothy configuration file
