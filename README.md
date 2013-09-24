@@ -4,6 +4,7 @@ A malware/botnet analysis framework written in Ruby.
 
 For a perfect view of this document (images and links), open it through the project's [code repository](https://github.com/m4rco-/dorothy2/blob/master/README.md).
 
+For any issue, use our [Redmine](https://redmine.honeynet.it/projects/dorothy2)
 ##Introduction
 
 Dorothy2 is a framework created for mass malware analysis. Currently, it is mainly based on analyzing the network behavior of a virtual machine where a suspicious executable was executed.
