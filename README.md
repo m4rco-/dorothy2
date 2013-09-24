@@ -283,7 +283,7 @@ Below there are some tips about how understand the root-cause of your crash.
 
 > $dorothy_start -v -s malwarefolder
 
-3. Drop an email to info at honeynet.it with the output of your errors :)
+3. If any error occours, go to our Redmine and raise a [bug-ticket](https://redmine.honeynet.it/projects/dorothy2/)!  
 
 ------------------------------------------
 
