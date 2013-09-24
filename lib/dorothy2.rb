@@ -57,12 +57,12 @@ module Dorothy
         db.close
       else      #Use multithreading
         @analysis_threads << Thread.new(bin.filename){
-            db = Insertdb.new
-            sleep rand(@binum * 2)  #OPTIMIZE #REVIEW
-            sleep rand(30) while !(guestvm = db.find_vm)  #guestvm struct: array ["sandbox id", "sandbox name", "ipaddress", "user", "password"]
-            analyze(bin, guestvm)
-            db.free_vm(guestvm[0])
-            db.close
+          db = Insertdb.new
+          sleep rand(@binum * 2)  #OPTIMIZE #REVIEW
+          sleep rand(30) while !(guestvm = db.find_vm)  #guestvm struct: array ["sandbox id", "sandbox name", "ipaddress", "user", "password"]
+          analyze(bin, guestvm)
+          db.free_vm(guestvm[0])
+          db.close
         }
       end
     end
@@ -393,68 +393,75 @@ module Dorothy
   end
 
 ###Create Baseline
-  def run_baseline
+  def self.run_baseline
     db = Insertdb.new
+    db.vm_init
     guestvm = db.find_vm
-    LOGGER.info "VSM","VM#{guestvm[0]}".red + " Executng the baseline run"
-    vsm = Doro_VSM::ESX.new(DoroSettings.esx[:host],DoroSettings.esx[:user],DoroSettings.esx[:pass],guestvm[1], guestvm[3], guestvm[4])
-    vsm.check_internet
-    LOGGER.info "VSM","VM#{guestvm[0]}".red + " Sleeping #{DoroSettings.sandbox[:sleeptime]} seconds".yellow
-    sleep DoroSettings.sandbox[:sleeptime]
-    vsm.get_running_procs(nil, true)  #save on file
-    LOGGER.info "VSM", "VM#{guestvm[0]} ".red + "Reverting VM".yellow
-    vsm.revert_vm
-    db.free_vm(guestvm[0])
-    db.close
-  rescue => e
-    LOGGER.error "VSM", "VM#{guestvm[0]} An error occurred while performing the BASELINE run, please retry"
-    LOGGER.debug "Dorothy" , "#{$!}\n #{e.inspect} \n #{e.backtrace}" if VERBOSE
-    LOGGER.warn "VSM", "VM#{guestvm[0]} ".red + "[RECOVER] Reverting VM".yellow
-    vsm.revert_vm
-    db.free_vm(guestvm[0])
-    db.close
-  end
+    if guestvm
+      begin
+        LOGGER.info "VSM","VM#{guestvm[0]}".red + " Executng the baseline run"
+        vsm = Doro_VSM::ESX.new(DoroSettings.esx[:host],DoroSettings.esx[:user],DoroSettings.esx[:pass],guestvm[1], guestvm[3], guestvm[4])
+        vsm.check_internet
+        LOGGER.info "VSM","VM#{guestvm[0]}".red + " Sleeping #{DoroSettings.sandbox[:sleeptime]} seconds".yellow
+        sleep DoroSettings.sandbox[:sleeptime]
+        vsm.get_running_procs(nil, true)  #save on file
+        LOGGER.info "VSM", "VM#{guestvm[0]} ".red + "Reverting VM".yellow
+        vsm.revert_vm
+        db.free_vm(guestvm[0])
+        db.close
+      rescue => e
+        LOGGER.error "VSM", "VM#{guestvm[0]} ".yellow + "An error occurred while performing the BASELINE run, please retry"
+        LOGGER.debug "Dorothy" , "VM#{guestvm[0]} ".yellow + "#{$!}\n #{e.inspect} \n #{e.backtrace}" if VERBOSE
+        LOGGER.warn "VSM", "VM#{guestvm[0]} ".yellow + "[RECOVER] Reverting VM"
+        vsm.revert_vm
+        db.free_vm(guestvm[0])
+        db.close
+       end
+      else
+        LOGGER.fatal "VSM", "[CRITICAL]".red + " There are no free VM at the moment..how it is possible?"
+      end
+    end
 
 ########################
 ## VTOTAL SCAN		####
 ########################
-  private
-  def scan(bin)
-    #puts "TOTAL", "Forking for VTOTAL"
-    @vtotal_threads << Thread.new(bin.sha) {
-      LOGGER.info "VTOTAL", "Scanning file #{bin.md5}".yellow
+    private
+    def scan(bin)
+      #puts "TOTAL", "Forking for VTOTAL"
+      @vtotal_threads << Thread.new(bin.sha) {
+        LOGGER.info "VTOTAL", "Scanning file #{bin.md5}".yellow
 
-      vt = Vtotal.new
-      id = vt.analyze_file(bin.binpath)
+        vt = Vtotal.new
+        id = vt.analyze_file(bin.binpath)
 
-      LOGGER.debug "VTOTAL", "Sleeping"
+        LOGGER.debug "VTOTAL", "Sleeping"
 
-      sleep 15
+        sleep 15
 
-      until vt.get_report(id)
-        LOGGER.info "VTOTAL", "Waiting a while and keep retring..."
-        sleep 30
-      end
+        until vt.get_report(id)
+          LOGGER.info "VTOTAL", "Waiting a while and keep retring..."
+          sleep 30
+        end
 
-      LOGGER.info "VTOTAL", "#{bin.md5} Detection Rate: #{vt.rate}"
-      LOGGER.info "VTOTAL", "#{bin.md5} Family by McAfee: #{vt.family}"
+        LOGGER.info "VTOTAL", "#{bin.md5} Detection Rate: #{vt.rate}"
+        LOGGER.info "VTOTAL", "#{bin.md5} Family by McAfee: #{vt.family}"
 
-      LOGGER.info "VTOTAL", "Updating DB"
-      vtvalues = [bin.sha, vt.family, vt.vendor, vt.version, vt.rate, vt.updated, vt.detected]
-      db = Insertdb.new
-      db.begin
-      begin
-        db.insert("malwares", vtvalues)
-        db.close
-      rescue
-        db.rollback
-        LOGGER.error "VTOTAL", "Error while inserting values in malware table"
-      end
+        LOGGER.info "VTOTAL", "Updating DB"
+        vtvalues = [bin.sha, vt.family, vt.vendor, vt.version, vt.rate, vt.updated, vt.detected]
+        db = Insertdb.new
+        db.begin
+        begin
+          db.insert("malwares", vtvalues)
+          db.close
+        rescue
+          db.rollback
+          LOGGER.error "VTOTAL", "Error while inserting values in malware table"
+        end
 
-      #TODO upload evidence to RT
-    }
+        #TODO upload evidence to RT
+      }
 
-  end
+    end
 
 
 
@@ -462,129 +469,129 @@ module Dorothy
 ##			MAIN	        	#
 #########################
 
-  def self.start(source=nil, daemon=nil)
+    def self.start(source=nil, daemon=nil)
 
-    @db = Insertdb.new
-    daemon ||= false
+      @db = Insertdb.new
+      daemon ||= false
 
-    puts "[" + "+".red + "] " +  "[Dorothy]".yellow +  " Process Started"
+      puts "[" + "+".red + "] " +  "[Dorothy]".yellow +  " Process Started"
 
 
-    LOGGER.info "Dorothy", "Started".yellow
+      LOGGER.info "Dorothy", "Started".yellow
 
-    if daemon
-      check_pid_file DoroSettings.env[:pidfile]
-      puts "[" + "+".red + "] " + "[Dorothy]".yellow + " Going in backround with pid #{Process.pid}"
-      puts "[" + "+".red + "] " + "[Dorothy]".yellow + " Logging on #{DoroSettings.env[:logfile]}"
-      Process.daemon
-      create_pid_file DoroSettings.env[:pidfile]
-      puts "[" + "+".red + "] " +  "[Dorothy]".yellow +  " Going in backround with pid #{Process.pid}"
-    end
-
-    #Creating a new NAM object for managing the sniffer
-    @nam = Doro_NAM.new(DoroSettings.nam)
-    #Be sure that there are no open tcpdump instances opened
-    @nam.init_sniffer
-
-    @vtotal_threads = []
-    @vtotal_threads = []
-    @analysis_threads = []
-
-    infinite = true
-
-    #be sure that all the vm are available by forcing their release
-    @db.vm_init
-
-    if source # a source has been specified
-      while infinite  #infinite loop
-        dfm = DorothyFetcher.new(source)
-        start_analysis(dfm.bins)
-        infinite = daemon #exit if wasn't set
-        wait_end
-        LOGGER.info "Dorothy", "SLEEPING" if daemon
-        sleep DoroSettings.env[:dtimeout] if daemon # Sleeping a while if -d wasn't set, then quit.
+      if daemon
+        check_pid_file DoroSettings.env[:pidfile]
+        puts "[" + "+".red + "] " + "[Dorothy]".yellow + " Going in backround with pid #{Process.pid}"
+        puts "[" + "+".red + "] " + "[Dorothy]".yellow + " Logging on #{DoroSettings.env[:logfile]}"
+        Process.daemon
+        create_pid_file DoroSettings.env[:pidfile]
+        puts "[" + "+".red + "] " +  "[Dorothy]".yellow +  " Going in backround with pid #{Process.pid}"
       end
-    else  # no sources specified, analyze all of them
-      while infinite  #infinite loop
-        sources = YAML.load_file(DoroSettings.env[:home] + '/etc/sources.yml')
-        sources.keys.each do |sname|
-          dfm = DorothyFetcher.new(sources[sname])
+
+      #Creating a new NAM object for managing the sniffer
+      @nam = Doro_NAM.new(DoroSettings.nam)
+      #Be sure that there are no open tcpdump instances opened
+      @nam.init_sniffer
+
+      @vtotal_threads = []
+      @vtotal_threads = []
+      @analysis_threads = []
+
+      infinite = true
+
+      #be sure that all the vm are available by forcing their release
+      @db.vm_init
+
+      if source # a source has been specified
+        while infinite  #infinite loop
+          dfm = DorothyFetcher.new(source)
           start_analysis(dfm.bins)
+          infinite = daemon #exit if wasn't set
+          wait_end
+          LOGGER.info "Dorothy", "SLEEPING" if daemon
+          sleep DoroSettings.env[:dtimeout] if daemon # Sleeping a while if -d wasn't set, then quit.
         end
-        infinite = daemon #exit if wasn't set
-        wait_end
-        LOGGER.info "Dorothy", "SLEEPING" if daemon
-        sleep DoroSettings.env[:dtimeout].to_i if daemon # Sleeping a while if -d wasn't set, then quit.
-      end
-    end
-
-    @db.close
-
-  end
-
-  def wait_end
-
-    unless @vtotal_threads.empty?
-      @vtotal_threads.each { |aThread|  aThread.join}
-      LOGGER.info "VTOTAL","Process compleated successfully"
-    end
-
-    @analysis_threads.each { |aThread|  aThread.join }
-    LOGGER.info "Dorothy", "Process finished"
-
-  end
-
-  def check_pid_file(file)
-    if File.exist? file
-      # If we get Errno::ESRCH then process does not exist and
-      # we can safely cleanup the pid file.
-      pid = File.read(file).to_i
-      begin
-        Process.kill(0, pid)
-      rescue Errno::ESRCH
-        stale_pid = true
+      else  # no sources specified, analyze all of them
+        while infinite  #infinite loop
+          sources = YAML.load_file(DoroSettings.env[:home] + '/etc/sources.yml')
+          sources.keys.each do |sname|
+            dfm = DorothyFetcher.new(sources[sname])
+            start_analysis(dfm.bins)
+          end
+          infinite = daemon #exit if wasn't set
+          wait_end
+          LOGGER.info "Dorothy", "SLEEPING" if daemon
+          sleep DoroSettings.env[:dtimeout].to_i if daemon # Sleeping a while if -d wasn't set, then quit.
+        end
       end
 
-      unless stale_pid
-        puts "[" + "+".red + "] " +  "[Dorothy]".yellow + " Dorothy is already running (pid=#{pid})"
-        exit(1)
-      end
+      @db.close
+
     end
-  end
 
-  def create_pid_file(file)
-    File.open(file, "w") { |f| f.puts Process.pid }
+    def wait_end
 
-    # Remove pid file during shutdown
-    at_exit do
-      LOGGER.info "Dorothy", "Shutting down." rescue nil
+      unless @vtotal_threads.empty?
+        @vtotal_threads.each { |aThread|  aThread.join}
+        LOGGER.info "VTOTAL","Process compleated successfully"
+      end
+
+      @analysis_threads.each { |aThread|  aThread.join }
+      LOGGER.info "Dorothy", "Process finished"
+
+    end
+
+    def check_pid_file(file)
       if File.exist? file
-        File.unlink file
+        # If we get Errno::ESRCH then process does not exist and
+        # we can safely cleanup the pid file.
+        pid = File.read(file).to_i
+        begin
+          Process.kill(0, pid)
+        rescue Errno::ESRCH
+          stale_pid = true
+        end
+
+        unless stale_pid
+          puts "[" + "+".red + "] " +  "[Dorothy]".yellow + " Dorothy is already running (pid=#{pid})"
+          exit(1)
+        end
       end
     end
-  end
 
-  def self.stop_running_analyses
-    LOGGER.info "Dorothy", "Killing curent live analysis threads.."
-    @analysis_threads.each { |aThread|
-      aThread.raise
-      aThread.join
-    }
-  end
+    def create_pid_file(file)
+      File.open(file, "w") { |f| f.puts Process.pid }
+
+      # Remove pid file during shutdown
+      at_exit do
+        LOGGER.info "Dorothy", "Shutting down." rescue nil
+        if File.exist? file
+          File.unlink file
+        end
+      end
+    end
+
+    def self.stop_running_analyses
+      LOGGER.info "Dorothy", "Killing curent live analysis threads.."
+      @analysis_threads.each { |aThread|
+        aThread.raise
+        aThread.join
+      }
+    end
 ## Sends SIGTERM to process in pidfile. Server should trap this
 # and shutdown cleanly.
-  def self.stop
-    puts "[" + "+".red + "]" + " Dorothy is shutting now.."
-    LOGGER.info "Dorothy", "Shutting down."
-    pid_file = DoroSettings.env[:pidfile]
-    if pid_file and File.exist? pid_file
-      pid = Integer(File.read(pid_file))
-      Process.kill(-2,-pid)
-      LOGGER.info "Dorothy", "Process #{pid} terminated"
-      puts "[" + "+".red + "]" + " Dorothy Process #{pid} terminated"
-    else
-      LOGGER.info "Dorothy", "Can't find PID file, is Dorothy really running?"
+    def self.stop
+      puts "[" + "+".red + "]" + " Dorothy is shutting now.."
+      LOGGER.info "Dorothy", "Shutting down."
+      pid_file = DoroSettings.env[:pidfile]
+      if pid_file and File.exist? pid_file
+        pid = Integer(File.read(pid_file))
+        Process.kill(-2,-pid)
+        LOGGER.info "Dorothy", "Process #{pid} terminated"
+        puts "[" + "+".red + "]" + " Dorothy Process #{pid} terminated"
+      else
+        LOGGER.info "Dorothy", "Can't find PID file, is Dorothy really running?"
+      end
     end
-  end
 
-end
+  end

@@ -191,7 +191,7 @@ end
 unless Util.exists?(baseline_procs)
   puts "[" + "+".red + "] " +  "[WARNING]".red + " There is no process-baseline file yet, Dorothy is going to create one."
   Dorothy.run_baseline
-  puts "[" + "+".red + "] " +  "[WARNING]".red + "Baseline run finished."
+  puts "[" + "+".red + "] " +  "[WARNING]".red + " Baseline run finished."
   exit(0)
 end
 
