@@ -1,3 +1,6 @@
+#!/bin/env ruby
+# encoding: utf-8
+
 # Copyright (C) 2010-2013 marco riccardi.
 # This file is part of Dorothy - http://www.honeynet.it/
 # See the file 'LICENSE' for copying permission.
@@ -19,14 +22,12 @@ require 'filemagic'
 require 'rbvmomi'
 require 'timeout'
 require 'virustotal'
-require 'ftools' #deprecated in ruby 1.9 !!!
 require 'filemagic'
-require 'md5'
+require 'digest'
 
 require File.dirname(__FILE__) + '/dorothy2/do-init'
 require File.dirname(__FILE__) + '/dorothy2/Settings'
 require File.dirname(__FILE__) + '/dorothy2/deep_symbolize'
-require File.dirname(__FILE__) + '/dorothy2/environment'
 require File.dirname(__FILE__) + '/dorothy2/vtotal'
 require File.dirname(__FILE__) + '/dorothy2/VSM'
 require File.dirname(__FILE__) + '/dorothy2/NAM'
@@ -225,7 +226,7 @@ module Dorothy
 
         DoroSettings.sandbox[:num_screenshots].times do
           @screenshots.push vsm.screenshot
-          sleep DoroSettings.sandbox[:screen2time] % DoroSettings.sandbox[:sleeptime]
+          sleep DoroSettings.sandbox[:screen2time] % DoroSettings.sandbox[:sleeptime] if DoroSettings.sandbox[:screen2time]
         end
 
         sleep DoroSettings.sandbox[:sleeptime]
@@ -471,7 +472,10 @@ module Dorothy
 
     def self.start(source=nil, daemon=nil)
 
+      @vtotal_threads = []
+      @analysis_threads = []
       @db = Insertdb.new
+
       daemon ||= false
 
       puts "[" + "+".red + "] " +  "[Dorothy]".yellow +  " Process Started"
@@ -493,9 +497,7 @@ module Dorothy
       #Be sure that there are no open tcpdump instances opened
       @nam.init_sniffer
 
-      @vtotal_threads = []
-      @vtotal_threads = []
-      @analysis_threads = []
+
 
       infinite = true
 

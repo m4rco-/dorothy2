@@ -17,7 +17,7 @@ require 'mu/xtractr/content'
 require 'mu/xtractr/field'
 require 'mu/xtractr/flow'
 require 'mu/xtractr/flows'
-require 'mu/xtractr/host'
+require File.dirname(__FILE__) + '/xtractr/host'   #overrides the gem one with the local (fixed for 1.9.3)
 require 'mu/xtractr/packet'
 require 'mu/xtractr/packets'
 require 'mu/xtractr/service'

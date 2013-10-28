@@ -2,10 +2,8 @@
 # This file is part of Dorothy - http://www.honeynet.it/
 # See the file 'LICENSE' for copying permission.
 
-#!/usr/local/bin/ruby
 
 #load 'lib/doroParser.rb'; include Dorothy; include DoroParser; LOGGER = DoroLogger.new(STDOUT, "weekly")
-
 #Install mu/xtractr from svn checkout http://pcapr.googlecode.com/svn/trunk/ pcapr-read-only
 
 
@@ -17,24 +15,21 @@
 
 
 require 'rubygems'
-require 'md5'
+require 'digest'
 require 'rbvmomi'
 require 'rest_client'
 require 'net/dns'
 require 'net/dns/packet'
 require 'ipaddr'
 require 'colored'
-require 'ftools'
-require 'filemagic'                                    #require 'pcaplet'
+require 'filemagic'
 require 'geoip'
 require 'pg'
-require 'iconv'
 require 'tmail'
 require 'ipaddr'
 require 'net/http'
 require 'json'
 
-require File.dirname(__FILE__) + '/dorothy2/environment'
 require File.dirname(__FILE__) + '/mu/xtractr'
 require File.dirname(__FILE__) + '/dorothy2/DEM'
 require File.dirname(__FILE__) + '/dorothy2/do-utils'

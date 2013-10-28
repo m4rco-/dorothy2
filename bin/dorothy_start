@@ -216,9 +216,9 @@ begin
 rescue SignalException
    Dorothy.stop_running_analyses
 rescue => e
-  puts "[" + "+".red + "] " +  "[Dorothy]".yellow + " An error occurred: ".red + $!
-  puts "[" + "+".red + "] " +  "[Dorothy]".yellow + " For more information check the logfile" + $! if daemon
-  LOGGER.error "Dorothy", "An error occurred: " + $!
+  puts "[" + "+".red + "] " +  "[Dorothy]".yellow + " An error occurred: \n".red + e.inspect
+  puts "[" + "+".red + "] " +  "[Dorothy]".yellow + " For more information check the logfile \n" + e.inspect if daemon
+  LOGGER.error "Dorothy", "An error occurred: \n" + e.inspect
   LOGGER.debug "Dorothy", "#{e.inspect} --BACKTRACE:  #{e.backtrace}"
   LOGGER.info "Dorothy", "Dorothy has been stopped"
 end

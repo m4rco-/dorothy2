@@ -74,9 +74,12 @@ class Host
     private
     def role2q role, forp, q=nil # :nodoc:
         _q = case role
-                when :any:    "#{forp}.src|#{forp}.dst:\"#{address}\""
-                when :client: "#{forp}.src:\"#{address}\""
-                when :server: "#{forp}.dst:\"#{address}\""
+               when :any
+                 "#{forp}.src|#{forp}.dst:\"#{address}\""
+               when :client
+                 "#{forp}.src:\"#{address}\""
+               when :server
+                 "#{forp}.dst:\"#{address}\""
                 else raise ArgumentError, "Unknown role #{role}"
             end
         _q << " #{q}" if q

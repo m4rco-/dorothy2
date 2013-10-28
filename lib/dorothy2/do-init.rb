@@ -1,3 +1,6 @@
+#!/bin/env ruby
+# encoding: utf-8
+
 # Copyright (C) 2010-2013 marco riccardi.
 # This file is part of Dorothy - http://www.honeynet.it/
 # See the file 'LICENSE' for copying permission.
@@ -66,6 +69,7 @@ module Dorothy
         conf["env"]["analysis_dir"] = "#{home}/opt/analyzed"
         conf["env"]["geoip"] = "#{home}/etc/geo/GeoLiteCity.dat"
         conf["env"]["geoasn"] = "#{home}/etc/geo/GeoIPASNum.dat"
+        conf["env"]["geoisp"] = "#{home}/etc/geo/GeoIPISP.dat"
 
         conf["env"]["dtimeout"] = 3600
 
@@ -129,6 +133,9 @@ module Dorothy
 
         puts "After how many seconds do you want to take the first screenshot? [1]"
         conf["sandbox"]["screen1time"] = (t = gets.chop).empty? ? 1 : t
+
+        puts "Which is the sandox's network? [10.10.10.0/0]"
+        conf["sandbox"]["network"] = (t = gets.chop).empty? ? "10.10.10.0/0" : t
 
         ######################################################
         ###NAM

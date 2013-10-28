@@ -11,6 +11,9 @@ require 'dorothy2'
 require 'doroParser'
 
 #load '../lib/doroParser.rb'
+#load '../lib/dorothy2.rb'
+
+
 
 include Dorothy
 include DoroParser
