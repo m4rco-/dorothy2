@@ -136,12 +136,13 @@ module DoroParser
 
           if File.exists?(DoroSettings.env[:geoisp])
             geoisp = GeoIP.new(DoroSettings.env[:geoisp])
-            @isp = geoisp.isp(ip) ? geoisp(ip) : "null"
+            @isp = geoisp.isp(ip) ? geoisp.isp(ip) : "null"
           end
 
         rescue => e
           LOGGER_PARSER.fatal "GEO", "Error while fetching GeoIP dat file for IP: " + ip
           LOGGER_PARSER.fatal "GEO", e.inspect
+          LOGGER_PARSER.fatal "GEO" ,e.backtrace
           @city, @country, @coord, @asn, @isp = "null", "null", "null", "null", "null"
         end
 

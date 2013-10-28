@@ -82,12 +82,12 @@ end
 begin
   DoroParser.start(daemon)
 rescue => e
-  puts "[PARSER]".yellow + " An error occurred: ".red + $!
+  puts "[PARSER]".yellow + " An error occurred: ".red + e.inspect
   if daemon
-    puts "[PARSER]".yellow + " For more information check the logfile" + $!
+    puts "[PARSER]".yellow + " For more information check the logfile" + e.inspect
     puts "[PARSER]".yellow + "Dorothy-Parser has been stopped"
   end
-  LOGGER_PARSER.error "Parser", "An error occurred: " + $!
+  LOGGER_PARSER.error "Parser", "An error occurred: " + e.inspect
   LOGGER_PARSER.debug "Parser", "#{e.inspect} --BACKTRACE: #{e.backtrace}"
   LOGGER_PARSER.info "Parser", "Dorothy-Parser has been stopped"
 end

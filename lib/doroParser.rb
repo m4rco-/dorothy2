@@ -85,7 +85,7 @@ module DoroParser
 
       rescue => e
         LOGGER_PARSER.fatal "PARSER", "Can't connect to the PCAPR server."
-        LOGGER_PARSER.debug "PARSER", "#{$!}"
+        LOGGER_PARSER.debug "PARSER", "#{e.inspect}"
         LOGGER_PARSER.debug "PARSER", e.backtrace if VERBOSE
         return false
       end
@@ -385,7 +385,7 @@ module DoroParser
                     rescue => e
 
                       LOGGER_PARSER.error "DB", "Something went wrong while adding a DNS entry into the DB (packet malformed?) - The packet will be skipped"
-                      LOGGER_PARSER.debug "DB", "#{$!}" if VERBOSE
+                      LOGGER_PARSER.debug "DB", "#{e.inspect}" if VERBOSE
                       LOGGER_PARSER.debug "DB", e  if VERBOSE
                     end
 

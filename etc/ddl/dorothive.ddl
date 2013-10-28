@@ -1079,21 +1079,16 @@ SELECT pg_catalog.setval('whois_id_seq', 1, false);
 -- Name: sys_procs; Type: TABLE; Schema: dorothy; Owner: postgres; Tablespace:
 --
 
-CREATE TABLE dorothy.sys_procs
-(
-  analysis_id integer NOT NULL,
-  pid integer NOT NULL,
-  name character varying,
-  owner character varying,
-  "cmdLine" character varying,
-  "startTime" timestamp without time zone,
-  "endTime" timestamp without time zone,
-  "exitCode" integer,
-  CONSTRAINT "procs-pk" PRIMARY KEY (analysis_id , pid ),
-  CONSTRAINT "anal_id-fk" FOREIGN KEY (analysis_id)
-      REFERENCES dorothy.analyses (id) MATCH SIMPLE
-      ON UPDATE NO ACTION ON DELETE NO ACTION
-)
+CREATE TABLE sys_procs (
+    analysis_id integer NOT NULL,
+    pid integer NOT NULL,
+    name character varying,
+    owner character varying,
+    "cmdLine" character varying,
+    "startTime" timestamp without time zone,
+    "endTime" timestamp without time zone,
+    "exitCode" integer
+);
 
 
 ALTER TABLE dorothy.sys_procs OWNER TO postgres;
@@ -1486,6 +1481,12 @@ ALTER TABLE ONLY host_ips
 ALTER TABLE ONLY irc_data
     ADD CONSTRAINT pk_irc PRIMARY KEY (id);
 
+--
+-- Name: procs-pk; Type: CONSTRAINT; Schema: dorothy; Owner: postgres; Tablespace:
+--
+
+ALTER TABLE ONLY sys_procs
+    ADD CONSTRAINT "procs-pk" PRIMARY KEY (analysis_id, pid);
 
 --
 -- Name: reports_pkey; Type: CONSTRAINT; Schema: dorothy; Owner: postgres; Tablespace: 
@@ -1639,6 +1640,12 @@ CREATE INDEX fki_shash ON reports USING btree (sample);
 
 CREATE INDEX fki_tdumps ON analyses USING btree (traffic_dump);
 
+--
+-- Name: anal_id-fk; Type: FK CONSTRAINT; Schema: dorothy; Owner: postgres
+--
+
+ALTER TABLE ONLY sys_procs
+    ADD CONSTRAINT "anal_id-fk" FOREIGN KEY (analysis_id) REFERENCES analyses(id);
 
 --
 -- Name: dest_ip; Type: FK CONSTRAINT; Schema: dorothy; Owner: postgres
@@ -1797,4 +1804,3 @@ GRANT ALL ON SCHEMA dorothy TO PUBLIC;
 --
 -- PostgreSQL database dump complete
 --
-

@@ -19,14 +19,14 @@ module Dorothy
     end
 
     def init_db(ddl=DoroSettings.dorothive[:ddl], force=false)
-      LOGGER.warn "DB", "The database is going to be initialized with the file #{ddl}. If the Dorothive is already present, " + "all the its data will be lost".red + ". Continue?(write yes)"
+      LOGGER.warn "DB", "The database is going to be initialized with the file #{ddl}. If the Dorothive is already present, " + "all its data will be lost".red + ". Continue?(write yes)"
       answ = "yes"
       answ = gets.chop unless force
 
       if answ == "yes"
         begin
           #ugly, I know, but couldn't find a better and easier way..
-          raise 'An error occurred' unless system "psql -h #{DoroSettings.dorothive[:dbhost]} -U #{DoroSettings.dorothive[:dbuser]} -f #{ddl} 1> /dev/null"
+          raise 'An error occurred' unless system "sh -c 'psql -h #{DoroSettings.dorothive[:dbhost]} -U #{DoroSettings.dorothive[:dbuser]} -f #{ddl} 1> /dev/null'"
           LOGGER.info "DB", "Database correctly initialized. Now you can restart Dorothy!"
         rescue => e
           LOGGER.error "DB", $!
