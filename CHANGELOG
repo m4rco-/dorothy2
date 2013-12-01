@@ -1,0 +1,14 @@
+Dorothy 1.2.0
+
+dorothy.yml
+     added sandbox’s network (needed by DEM)
+     added GeoIP.ISP 
+
+fix dparser
+     iconv deprecated
+     added GeoIP.ISP
+     removed lot of unused classes in DEM
+ 
+dorothive
+    samples.hash -> sample.sha256
+    traffic_dumps.hash -> traffic_dumps.sha256
