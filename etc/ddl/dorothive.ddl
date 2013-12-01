@@ -223,7 +223,7 @@ SELECT pg_catalog.setval('analyses_id_seq', 1, true);
 --
 
 CREATE TABLE samples (
-    hash character(64) NOT NULL,
+    sha256 character(64) NOT NULL,
     size integer NOT NULL,
     path character(256),
     filename character(256),
@@ -246,7 +246,7 @@ COMMENT ON TABLE samples IS 'Acquired samples';
 -- Name: COLUMN samples.hash; Type: COMMENT; Schema: dorothy; Owner: postgres
 --
 
-COMMENT ON COLUMN samples.hash IS 'SHA256 checksum hash';
+COMMENT ON COLUMN samples.sha256 IS 'SHA256 checksum hash';
 
 
 --
@@ -267,7 +267,7 @@ COMMENT ON CONSTRAINT size_notneg ON samples IS 'Sample size must not be negativ
 --
 
 CREATE TABLE traffic_dumps (
-    hash character(64) NOT NULL,
+    sha256 character(64) NOT NULL,
     size integer NOT NULL,
     pcapr_id character(32),
     "binary" character varying,
@@ -281,7 +281,7 @@ ALTER TABLE dorothy.traffic_dumps OWNER TO postgres;
 -- Name: COLUMN traffic_dumps.hash; Type: COMMENT; Schema: dorothy; Owner: postgres
 --
 
-COMMENT ON COLUMN traffic_dumps.hash IS 'SHA256 checksum hash';
+COMMENT ON COLUMN traffic_dumps.sha256 IS 'SHA256 checksum hash';
 
 
 --
@@ -289,7 +289,7 @@ COMMENT ON COLUMN traffic_dumps.hash IS 'SHA256 checksum hash';
 --
 
 CREATE VIEW analysis_resume_view AS
-    SELECT analyses.id, samples.filename, samples.md5, samples.long_type, analyses.date, traffic_dumps.parsed FROM traffic_dumps, samples, analyses WHERE ((analyses.sample = samples.hash) AND (analyses.traffic_dump = traffic_dumps.hash)) ORDER BY analyses.id DESC;
+    SELECT analyses.id, samples.filename, samples.md5, samples.long_type, analyses.date, traffic_dumps.parsed FROM traffic_dumps, samples, analyses WHERE ((analyses.sample = samples.sha256) AND (analyses.traffic_dump = traffic_dumps.sha256)) ORDER BY analyses.id DESC;
 
 
 ALTER TABLE dorothy.analysis_resume_view OWNER TO postgres;
@@ -545,7 +545,7 @@ ALTER TABLE dorothy.roles OWNER TO postgres;
 --
 
 CREATE VIEW ccprofile_view3 AS
-    SELECT DISTINCT host_ips.id AS hostid, host_ips.ip, flows.dstport, traffic_dumps.hash, irc_data.id, roles.type, dns_data.name, irc_data.data FROM roles, host_roles, host_ips, dns_data, flows, irc_data, traffic_dumps WHERE (((((((((roles.id = host_roles.role) AND (host_roles.host_ip = host_ips.ip)) AND (dns_data.id = host_ips.dns_name)) AND (flows.dest = host_ips.ip)) AND (flows.traffic_dump = traffic_dumps.hash)) AND (irc_data.flow = flows.id)) AND (irc_data.incoming = false)) AND (host_ips.is_online = true)) AND ((roles.type)::text = 'cc-irc'::text)) ORDER BY irc_data.id, host_ips.id, host_ips.ip, flows.dstport, traffic_dumps.hash, roles.type, dns_data.name, irc_data.data;
+    SELECT DISTINCT host_ips.id AS hostid, host_ips.ip, flows.dstport, traffic_dumps.sha256, irc_data.id, roles.type, dns_data.name, irc_data.data FROM roles, host_roles, host_ips, dns_data, flows, irc_data, traffic_dumps WHERE (((((((((roles.id = host_roles.role) AND (host_roles.host_ip = host_ips.ip)) AND (dns_data.id = host_ips.dns_name)) AND (flows.dest = host_ips.ip)) AND (flows.traffic_dump = traffic_dumps.sha256)) AND (irc_data.flow = flows.id)) AND (irc_data.incoming = false)) AND (host_ips.is_online = true)) AND ((roles.type)::text = 'cc-irc'::text)) ORDER BY irc_data.id, host_ips.id, host_ips.ip, flows.dstport, traffic_dumps.sha256, roles.type, dns_data.name, irc_data.data;
 
 
 ALTER TABLE dorothy.ccprofile_view3 OWNER TO postgres;
@@ -1315,7 +1315,7 @@ COPY roles (id, type, comment) FROM stdin;
 -- Data for Name: samples; Type: TABLE DATA; Schema: dorothy; Owner: postgres
 --
 
-COPY samples (hash, size, path, filename, md5, long_type) FROM stdin;
+COPY samples (sha256, size, path, filename, md5, long_type) FROM stdin;
 \.
 
 
@@ -1350,7 +1350,7 @@ COPY sightings (sample, sensor, date, traffic_dump) FROM stdin;
 -- Data for Name: traffic_dumps; Type: TABLE DATA; Schema: dorothy; Owner: postgres
 --
 
-COPY traffic_dumps (hash, size, pcapr_id, "binary", parsed) FROM stdin;
+COPY traffic_dumps (sha256, size, pcapr_id, "binary", parsed) FROM stdin;
 EMPTYPCAP	0	ffff	ffff	true
 \.
 
@@ -1415,7 +1415,7 @@ ALTER TABLE ONLY geoinfo
 --
 
 ALTER TABLE ONLY samples
-    ADD CONSTRAINT hash PRIMARY KEY (hash);
+    ADD CONSTRAINT sha256 PRIMARY KEY (sha256);
 
 
 --
@@ -1524,7 +1524,7 @@ ALTER TABLE ONLY sensors
 --
 
 ALTER TABLE ONLY traffic_dumps
-    ADD CONSTRAINT traffic_dumps_pkey PRIMARY KEY (hash);
+    ADD CONSTRAINT traffic_dumps_pkey PRIMARY KEY (sha256);
 
 
 --
@@ -1668,7 +1668,7 @@ ALTER TABLE ONLY host_ips
 --
 
 ALTER TABLE ONLY flows
-    ADD CONSTRAINT dumps FOREIGN KEY (traffic_dump) REFERENCES traffic_dumps(hash);
+    ADD CONSTRAINT dumps FOREIGN KEY (traffic_dump) REFERENCES traffic_dumps(sha256);
 
 
 --
@@ -1676,7 +1676,7 @@ ALTER TABLE ONLY flows
 --
 
 ALTER TABLE ONLY malwares
-    ADD CONSTRAINT fk_bin FOREIGN KEY (bin) REFERENCES samples(hash);
+    ADD CONSTRAINT fk_bin FOREIGN KEY (bin) REFERENCES samples(sha256);
 
 
 --
@@ -1748,7 +1748,7 @@ ALTER TABLE ONLY host_roles
 --
 
 ALTER TABLE ONLY analyses
-    ADD CONSTRAINT samples FOREIGN KEY (sample) REFERENCES samples(hash);
+    ADD CONSTRAINT samples FOREIGN KEY (sample) REFERENCES samples(sha256);
 
 
 --
@@ -1756,7 +1756,7 @@ ALTER TABLE ONLY analyses
 --
 
 ALTER TABLE ONLY sightings
-    ADD CONSTRAINT samples FOREIGN KEY (sample) REFERENCES samples(hash);
+    ADD CONSTRAINT samples FOREIGN KEY (sample) REFERENCES samples(sha256);
 
 
 --
@@ -1772,7 +1772,7 @@ ALTER TABLE ONLY sightings
 --
 
 ALTER TABLE ONLY reports
-    ADD CONSTRAINT shash FOREIGN KEY (sample) REFERENCES samples(hash);
+    ADD CONSTRAINT shash FOREIGN KEY (sample) REFERENCES samples(sha256);
 
 
 --
@@ -1780,7 +1780,7 @@ ALTER TABLE ONLY reports
 --
 
 ALTER TABLE ONLY analyses
-    ADD CONSTRAINT tdumps FOREIGN KEY (traffic_dump) REFERENCES traffic_dumps(hash);
+    ADD CONSTRAINT tdumps FOREIGN KEY (traffic_dump) REFERENCES traffic_dumps(sha256);
 
 
 --
