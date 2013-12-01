@@ -1,21 +1,19 @@
 #######################################
-#Updating from Dorothy 1.0.x to >= 1.0.9##
+#Updating from Dorothy 1.0.x to >= 1.2.0##
 #######################################
 
-Dorothy 1.0.9 introduces several features that improve the overall framework.
+Dorothy 1.2.0 introduces several features that improve the overall framework.
 Below, the recommended steps needed to update your Dorothy environment.
 
 a) Remove the Dorothy configuration file
     rm ~/.dorothy.yml
    And recreate it by restarting Dorothy. You will see that the init script will ask you more question than before.
 
-b) Since a new configuration file has been added in your Dorothy's etc/ folder (extension.yml), go and edit it
-   accordingly to your environment.
+b) The last version of Dorothy modified the dorothive schema in order to let dorothive compatible with Sinatra and Rails.
+The columns modified are the following:
+    samples.hash -> sample.sha256
+    traffic_dumps.hash -> traffic_dumps.sha256
+You can modify them manually if you have already a Dorothy version up and running, or drop the database and recreate it using the updated .ddl .
 
-c) From Dorothy home, execute the following SQL script in order to update the database schema. It will add the new table sys_procs.
-
-sudo -u postgres psql dorothive -f share/update_dorothive.sql
-
-That's all! You are ready to go!
 
 
