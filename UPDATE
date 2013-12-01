@@ -13,7 +13,7 @@ b) The last version of Dorothy modified the dorothive schema in order to let dor
 The columns modified are the following:
     samples.hash -> sample.sha256
     traffic_dumps.hash -> traffic_dumps.sha256
-You can modify them manually if you have already a Dorothy version up and running, or drop the database and recreate it using the updated .ddl .
+You can modify them manually if you have already a previous Dorothy version up and running, or drop the database and recreate it (-D) using the updated .ddl .
 
 
 
