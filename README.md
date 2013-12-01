@@ -89,7 +89,7 @@ It is recommended to follow this step2step process:
  * Configure a static IP
  * After configuring everything on the Guest OS, create a snapshot of the sandbox VM from vSphere console. Dorothy will use it when reverting the VM after a binary execution.
 
-3. From vSphere, create a unix VM dedicated to the NAM
+4. From vSphere, create a unix VM dedicated to the NAM
 
 
 * Install tcpdump and sudo
@@ -139,11 +139,15 @@ It is recommended to follow this step2step process:
 
         http//{ip-used-by-NAM}:8000
 
-4 From vSphere, configure the NIC on the virtual machine that will be used for the network sniffing purpose (NAM).
+5 From vSphere, configure the NIC on the virtual machine that will be used for the network sniffing purpose (NAM).
        >The vSwitch where the vNIC resides must allow the promisc mode, to enable it from vSphere:
 
        >Configuration->Networking->Proprieties on the vistualSwitch used for the analysis->Double click on the virtual network used for the analysis->Securiry->Tick "Promiscuous Mode", then select "Accept" from the list menu.
 
+>WARNING:
+If you are virtualizing ESX from a Linux host machine, remember to give the right privileges to the network interface used by VM Player / Workstation in order [to allow](http://kb.vmware.com/selfservice/microsites/search.do?language=en_US&cmd=displayKC&externalId=287) promiscuous mode:
+
+       > chmod a+rw /dev/vmnet0
 
 #### * Sample Setups
 1. Basic setup
