@@ -114,7 +114,7 @@ module Dorothy
       db = Insertdb.new
       db.begin_t
 
-      unless db.select("samples", "hash", samplevalues[0]).one?  #is bin.sha already present in my db?
+      unless db.select("samples", "sha256", samplevalues[0]).one?  #is bin.sha already present in my db?
         raise "A DB error occurred" unless db.insert("samples", samplevalues)             #no it isn't, insert it
 
       else                                                          #yes it is, don't insert in sample table

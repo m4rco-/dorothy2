@@ -12,6 +12,13 @@ exe:
   prog_path: C:\windows\system32\cmd.exe
   prog_args: /C
 
+
+bat:
+  prog_name: Windows CMD.exe
+  prog_path: C:\windows\system32\cmd.exe
+  prog_args: /C
+
+
 dll:
   prog_name: Windows Rundll32.exe
   prog_path: C:\windows\system32\rundll32.exe

@@ -13,8 +13,6 @@
 ## Data Definition Module ##
 ############################
 
-
-require 'rubygems'
 require 'digest'
 require 'rbvmomi'
 require 'rest_client'
@@ -67,13 +65,13 @@ module DoroParser
     pcaps.each do |dump|
       #RETRIVE MALWARE FILE INFO
 
-      !dump['sample'].nil? && !dump['hash'].nil? && !dump['pcapr_id'].nil? or next
+      !dump['sample'].nil? && !dump['sha256'].nil? && !dump['pcapr_id'].nil? or next
 
       LOGGER_PARSER.info "PARSER", "Analyzing file: ".yellow + dump['sample']
       LOGGER_PARSER.info "PARSER", "Analyzing pcaprid: ".yellow + dump['pcapr_id'].gsub(/\s+/, "")
 
 
-      LOGGER_PARSER.debug "PARSER", "Analyzing dump: ".yellow + dump['hash'].gsub(/\s+/, "") if VERBOSE
+      LOGGER_PARSER.debug "PARSER", "Analyzing dump: ".yellow + dump['sha256'].gsub(/\s+/, "") if VERBOSE
 
       downloadir = "#{DoroSettings.env[:analysis_dir]}/#{dump['anal_id']}/downloads"
 
@@ -179,7 +177,7 @@ module DoroParser
 
           #case TCP xtractr.flows('flow.service:SMTP').first.proto = 6
 
-          flowvals = [flow.src.address, flow.dst.address, flow.sport, flow.dport, flow.bytes, dump['hash'], flow.packets, "default", flow.proto, flow.service.name, title, "null", flow.duration, flow.time, flow.id ]
+          flowvals = [flow.src.address, flow.dst.address, flow.sport, flow.dport, flow.bytes, dump['sha256'], flow.packets, "default", flow.proto, flow.service.name, title, "null", flow.duration, flow.time, flow.id ]
 
           if	!@insertdb.insert("flows",flowvals)
             LOGGER_PARSER.info "PARSER", "Skipping flow #{flow.id}: #{flow.src.address} > #{flow.dst.address}"
@@ -415,7 +413,7 @@ module DoroParser
       #DEBUG
       #puts "save?" 
       #gets
-      @insertdb.set_analyzed(dump['hash'])
+      @insertdb.set_analyzed(dump['sha256'])
       @insertdb.commit
     end
   end

@@ -153,12 +153,12 @@ module Dorothy
       @db.exec("SELECT CASE WHEN EXISTS (SELECT * FROM dorothy.#{table} LIMIT 1) THEN FALSE ELSE TRUE END").first["case"] == "t" ? true : false
     end
 
-    def update_proto(role, ip)
-      @db.exec("UPDATE dorothy.host_roles set app_protocol = '#{proto}' where id = currval('connections_id_seq')")
+    def update_sample_path(sample, path)
+      @db.exec("UPDATE dorothy.samples set path = '#{path}' where sha256 = #{sample}")
     end
 
     def set_analyzed(hash)
-      @db.exec("UPDATE dorothy.traffic_dumps set parsed = true where hash = '#{hash}'")
+      @db.exec("UPDATE dorothy.traffic_dumps set parsed = true where sha256 = '#{hash}'")
     end
 
     def find_seq(seq)
@@ -171,7 +171,7 @@ module Dorothy
 
     def malware_list
       malwares = []
-      @db.exec("SELECT samples.hash FROM dorothy.samples").each do |q|
+      @db.exec("SELECT samples.sha256 FROM dorothy.samples").each do |q|
         malwares.push q
       end
       return malwares
@@ -180,7 +180,7 @@ module Dorothy
     def find_pcap
       @pcaps = []
       begin
-        @db.exec("SELECT traffic_dumps.hash, traffic_dumps.pcapr_id, traffic_dumps.size, traffic_dumps.binary, traffic_dumps.parsed, samples.md5 as \"sample\", analyses.date as \"date\", analyses.id as \"anal_id\" FROM dorothy.traffic_dumps, dorothy.samples, dorothy.analyses WHERE analyses.traffic_dump = traffic_dumps.hash AND analyses.sample = samples.hash AND traffic_dumps.parsed = false").each do |q|
+        @db.exec("SELECT traffic_dumps.sha256, traffic_dumps.pcapr_id, traffic_dumps.size, traffic_dumps.binary, traffic_dumps.parsed, samples.md5 as \"sample\", analyses.date as \"date\", analyses.id as \"anal_id\" FROM dorothy.traffic_dumps, dorothy.samples, dorothy.analyses WHERE analyses.traffic_dump = traffic_dumps.sha256 AND analyses.sample = samples.sha256 AND traffic_dumps.parsed = false").each do |q|
           @pcaps.push q
         end
       rescue

@@ -22,7 +22,6 @@ require 'filemagic'
 require 'rbvmomi'
 require 'timeout'
 require 'virustotal'
-require 'filemagic'
 require 'digest'
 
 require File.dirname(__FILE__) + '/dorothy2/do-init'
@@ -269,7 +268,7 @@ module Dorothy
         File.chmod(0644, bin.dir_screens + File.basename(screen), bin.dir_screens + File.basename(screen) )
       end
 
-      #UPDATE DOROTHIBE DB###################################
+      #UPDATE DOROTHIVE DB###################################
 
       dump = Loadmalw.new(bin.dir_pcap + dumpname + ".pcap")
 
