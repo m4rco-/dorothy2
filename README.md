@@ -50,7 +50,7 @@ very [modular](http://www.honeynet.it/wp-content/uploads/The_big_picture.pdf),an
 Dorothy needs the following software (not expressly in the same host) in order to be executed:
 
 * VMWare ESX >= 5.0  (tip: if you download ESXi, you can evaluate ESX for 30 days)
-* Ruby 1.8.7
+* Ruby 1.9.3
 * Postgres >= 9.0
 * At least one Windows virtual machine
 * One unix-like machine dedicated to the Network Analysis Engine(NAM) (tcpdump/ssh needed)
@@ -89,7 +89,7 @@ It is recommended to follow this step2step process:
  * Configure a static IP
  * After configuring everything on the Guest OS, create a snapshot of the sandbox VM from vSphere console. Dorothy will use it when reverting the VM after a binary execution.
 
-3. From vSphere, create a unix VM dedicated to the NAM
+4. From vSphere, create a unix VM dedicated to the NAM
 
 
 * Install tcpdump and sudo
@@ -113,7 +113,7 @@ It is recommended to follow this step2step process:
 
 * If you want to install pcapr on this machine (if you want to use dorohy from a MacOSX machine, you have to do it) install also these packages  (refer to this blog [post](https://github.com/pcapr-local/pcapr-local) for a detailed howto). However, if you are installing Dorothy into a Linux machine, I recommended you to install pcapr on the same machine where the Dorothy gem was installed.
 
-        #apt-get install ruby1.8 rubygems  tshark zip couchdb
+        #apt-get install ruby1.9.3 rubygems  tshark zip couchdb
 
 * Start the couchdb server
 
@@ -139,11 +139,15 @@ It is recommended to follow this step2step process:
 
         http//{ip-used-by-NAM}:8000
 
-4 From vSphere, configure the NIC on the virtual machine that will be used for the network sniffing purpose (NAM).
+5 From vSphere, configure the NIC on the virtual machine that will be used for the network sniffing purpose (NAM).
        >The vSwitch where the vNIC resides must allow the promisc mode, to enable it from vSphere:
 
        >Configuration->Networking->Proprieties on the vistualSwitch used for the analysis->Double click on the virtual network used for the analysis->Securiry->Tick "Promiscuous Mode", then select "Accept" from the list menu.
 
+>WARNING:
+If you are virtualizing ESX from a Linux host machine, remember to give the right privileges to the network interface used by VM Player / Workstation in order [to allow](http://kb.vmware.com/selfservice/microsites/search.do?language=en_US&cmd=displayKC&externalId=287) promiscuous mode:
+
+       > chmod a+rw /dev/vmnet0
 
 #### * Sample Setups
 1. Basic setup
@@ -175,7 +179,7 @@ or
 
 3. Install the following packages
 
-        $sudo apt-get install ruby1.8 rubygems postgresql-server-dev-9.1 libxml2-dev  libxslt1-dev libmagic-dev
+        $sudo apt-get install ruby1.9.3 rubygems postgresql-server-dev-9.1 libxml2-dev  libxslt1-dev libmagic-dev
 
 >For OSX users: all the above software are available through mac ports. A tip for libmagic: use brew instead:
 >
@@ -277,7 +281,7 @@ Below there are some tips about how understand the root-cause of your crash.
 
  >Example
 
-    $cd /opt/local/lib/ruby/gems/1.8/gems/dorothy2-0.0.1/test/
+    $cd /opt/local/lib/ruby/gems/1.9.3/gems/dorothy2-0.0.1/test/
     $ruby tc_dorothy_full.rb
 
 2. Set the verbose flag (-v) while executing dorothy
