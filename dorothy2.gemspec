@@ -16,7 +16,7 @@ Gem::Specification.new do |gem|
   gem.test_files    = gem.files.grep(%r{^(test|spec|features)/})
   gem.extra_rdoc_files = ["README.md"]
   gem.require_paths = ["lib"]
-  gem.required_ruby_version = '1.9.3'
+  gem.required_ruby_version = '>= 1.9.3'
   gem.add_dependency(%q<net-scp>, [">= 1.0.4"])
   gem.add_dependency(%q<net-ssh>, [">= 2.2.1"])
   gem.add_dependency(%q<trollop>, [">= 1.16.2"])
