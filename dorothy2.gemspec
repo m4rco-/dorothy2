@@ -26,7 +26,7 @@ Gem::Specification.new do |gem|
   gem.add_dependency(%q<ruby-pg>, [">= 0.7.9.2008.01.28"])
   gem.add_dependency(%q<virustotal>, [">= 2.0.0"])
   gem.add_dependency(%q<nokogiri>, ["~> 1.5.10"])
-  gem.add_dependency(%q<rbvmomi>, [">= 1.3.0"])
+  gem.add_dependency(%q<rbvmomi>, ["~> 1.6.0"])
   gem.add_dependency(%q<ruby-filemagic>, [">= 0.4.2"])
   #for dparser
   gem.add_dependency(%q<net-dns>, [">= 0.8.0"])
