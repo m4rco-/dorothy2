@@ -1,0 +1,28 @@
+<h1>Dorothive Analysis Queue</h1>
+
+<table border="1">
+  <tr>
+    <th>ID</th>
+    <th>Date</th>
+    <th>Filename</th>
+    <th>Source</th>
+    <th>Priority</th>
+    <th>User</th>
+    <th>Status</th>
+    <th>Analysis ID</th>
+  </tr>
+  <% @queue.each do |q| %>
+      <% analysed_id = @analyses.where(:queue_id => q.id).first.nil? ? "" : @analyses.where(:queue_id => q.id).first.id %>
+      <tr>
+        <td><%= q.id %></td>
+        <td><%= q.date %></td>
+        <td><%= q.filename %></td>
+        <td><%= q.source %></td>
+        <td><%= q.priority %></td>
+        <td><%= q.user %></td>
+        <td><%= q.status %></td>
+
+        <td><a href="/resume/<%= analysed_id %>"><%= analysed_id %></a></td>
+      </tr>
+  <% end %>
+</table>

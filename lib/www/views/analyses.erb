@@ -1,0 +1,22 @@
+<h1>Analyses</h1>
+
+<table border="1" align="center">
+  <tr>
+    <th>ID</th>
+    <th>Date</th>
+    <th>Filename</th>
+    <th>SHA256</th>
+    <th>Source</th>
+    <th>Sandbox</th>
+  </tr>
+    <% @analyses.each do |anal| %>
+      <tr>
+        <td><a href="/resume/<%= anal.id %>"><%= anal.id %></a></td>
+        <td><%= anal.date %></td>
+        <td><%= @samples.where(:sha256 => anal.sample).first.filename %></td>
+        <td><%= anal.sample %></td>
+        <td><%= @queue.where(:id => anal.queue_id).first.source %></td>
+        <td><%= anal.sandbox %></td>
+      </tr>
+    <% end %>
+</table>

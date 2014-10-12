@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf8">
+  <title><%= @title %></title>
+  <link href="/reset.css" rel="stylesheet">
+  <link href="/style.css" rel="stylesheet">
+</head>
+<body>
+<header>
+  <hgroup>
+    <a href="/">The Dorothy Framework</a>   - <a href="/upload">Submit a sample</a>  - <a href="/queue">Analysis Queue</a>
+  </hgroup>
+
+</header>
+
+<div id="main">
+  <%= yield %>
+</div>
+
+
+<div id="footer" style="clear:both;text-align:center;">
+<p><small>The analysis framework of the <a href="http://www.honeynet.it">Italian Honeynet Chapter</a>.</small></p>
+</div>
+</body>
+</html>
+

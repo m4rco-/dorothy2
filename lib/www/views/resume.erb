@@ -1,0 +1,127 @@
+<h1>Sample Resume</h1>
+<br>
+<table border="1">
+  <tr>
+    <td>Analysis ID:</td>
+    <td><%= @analid %></td>
+  </tr>
+  <tr>
+    <td>File Name:</td>
+    <td><%= @sample.filename %> [<a href="/samples/download/<%= @sample.sha256 %>">Download</a>] </td>
+  </tr>
+  <tr>
+    <td>File Type:</td>
+    <td><%= @sample.long_type %></td>
+  </tr>
+  <tr>
+    <td>MD5:</td>
+    <td><%= @sample.md5 %></td>
+  </tr>
+  <tr>
+    <td>SHA1:</td>
+    <td><%= @sample.sha256 %></td>
+  </tr>
+  <tr>
+    <td>File Size:</td>
+    <td><%= @sample.size %></td>
+  </tr>
+  <tr>
+    <td>AV Detection Rate:</td>
+    <% if @malware.nil? %>
+        <td>No matches in VirusTotal at that time.</td>
+    <% else %>
+        <td><%= @malware.rate.strip %></td>
+    <% end %>
+  </tr>
+  <tr>
+    <td>AV Results date:</td>
+    <% if @malware.nil? %>
+        <td>N/A</td>
+    <% else %>
+    <td>[<a href="<%= @malware.link.strip %>"><%= @malware.date %></a>]</td>
+    <% end %>
+  </tr>
+    <tr>
+    <td>Sophos detection</td>
+    <% unless @sophos.nil? %>
+         <td><%= @sophos.signature%> Version: <%= @sophos.version%> Updated: <%= @sophos.updated%></td>
+    <% else %>
+          <td>Standing to VirusTotal, it doesn't detect it</td>
+    <% end %>
+ </tr>
+
+
+
+</table>
+<br>
+<br>
+<br>
+<h1>System Processes Spowned</h1>
+<br>
+<table border="1">
+  <tr>
+    <th>PID</th>
+    <th>Process Name</th>
+    <th>Owner</th>
+    <th>cmdLine</th>
+    <th>startTime</th>
+    <th>endTime</th>
+    <th>exitCode</th>
+  </tr>
+  <% @sys_procs.each do |proc| %>
+      <tr>
+        <td><%= proc.pid %></td>
+        <td><%= proc.name %></td>
+        <td><%= proc.owner %></td>
+        <td><%= proc.cmdLine %></td>
+        <td><%= proc.startTime %></td>
+        <td><%= proc.endTime %></td>
+        <td><%= proc.exitCode %></td>
+      </tr>
+  <% end %>
+</table>
+<br>
+<br>
+<br>
+<h1>Screen Shots</h1>
+    <br>
+    <table border="1">
+      <tr>
+        <% @imgs.each do |img|%>
+        <th> <a href="<%= "/screens/#{@analid}/#{img}" %>"> <img src="<%= "/screens/#{@analid}/#{img}" %>" alt="Screenshot" width="160" height="160"></a>  </th>
+        <% end %>
+      </tr>
+    </table>
+
+<h1>Network Traffic Analysis</h1>
+<br>
+<table border="1">
+  <tr>
+    <th>ID</th>
+    <th>Time</th>
+    <th>Duration</th>
+    <th>Src Addr.</th>
+    <th>Src Port</th>
+    <th>Dst Addr</th>
+    <th>Dst Port</th>
+    <th>Service</th>
+    <th>Title</th>
+    <th>PCAP</th>
+  </tr>
+  <% @flows.each do |flow| %>
+      <tr>
+        <td><a href="<%= "/net/#{@net_dumps.first.sha256}/flow/#{flow.relative_id}" %>"><%= flow.relative_id %></a></td>
+        <td><%= flow.time %></td>
+        <td><%= flow.duration %></td>
+        <td><%= flow.source %></td>
+        <td><%= flow.srcport %></td>
+        <td><%= flow.dest %></td>
+        <td><%= flow.dstport %></td>
+        <td><%= flow.service %></td>
+        <td><%= flow.title %></td>
+        <td><a href="http://<%=DoroSettings.pcapr[:host]%>:<%=DoroSettings.pcapr[:port]%>/pcaps/1/pcap/<%=@net_dumps.first.pcapr_id%>/api/flow/<%=flow.relative_id%>/pcap">P</a></td>
+      </tr>
+  <% end %>
+</table>
+
+

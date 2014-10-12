@@ -1,0 +1,30 @@
+<h1>Network Traffic Analysis</h1>
+
+<table border="1">
+  <tr>
+    <th>ID</th>
+    <th>Time</th>
+    <th>Duration</th>
+    <th>Src Addr.</th>
+    <th>Src Port</th>
+    <th>Dst Addr</th>
+    <th>Dst Port</th>
+    <th>Service</th>
+    <th>Title</th>
+    <th>PCAP</th>
+  </tr>
+  <% @flows.each do |flow| %>
+      <tr>
+        <td><%= flow.relative_id %></td>
+        <td><%= flow.time %></td>
+        <td><%= flow.duration %></td>
+        <td><%= flow.source %></td>
+        <td><%= flow.srcport %></td>
+        <td><%= flow.dest %></td>
+        <td><%= flow.dstport %></td>
+        <td><%= flow.service %></td>
+        <td><%= flow.title %></td>
+        <td><a href="http://<%=DoroSettings.pcapr[:host]%>:<%=DoroSettings.pcapr[:port]%>/pcaps/1/pcap/<%=@net_dumps.first.pcapr_id%>/api/flow/<%=flow.relative_id%>/pcap">P</a></td>
+      </tr>
+  <% end %>
+</table>

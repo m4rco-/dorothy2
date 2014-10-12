@@ -1,0 +1,20 @@
+<h1>Samples</h1>
+
+<table border="1">
+  <tr>
+    <th>File Name</th>
+    <th>File Type</th>
+    <th>MD5</th>
+    <th>SHA1</th>
+    <th>Size(bytes)</th>
+  </tr>
+  <% @samples.each do |sample| %>
+      <tr>
+        <td><%= sample.filename %></td>
+        <td><%= sample.long_type %></td>
+        <td><%= sample.md5 %> [<a href="https://www.virustotal.com/search?<%= sample.md5 %>">VT</a>]</td>
+        <td><%= sample.sha256 %> [<a href="https://www.virustotal.com/search?<%= sample.sha256 %>">VT</a>]</td></td>
+        <td><%= sample.size %></td>
+      </tr>
+  <% end %>
+</table>
