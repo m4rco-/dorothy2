@@ -8,6 +8,8 @@ For any issue, use our [Redmine](https://redmine.honeynet.it/projects/dorothy2)
 
 A wiki page for dorothy2 is under construction. Please take a look at [it](https://redmine.honeynet.it/projects/dorothy2/wiki).
 
+[![Gem Version](https://badge.fury.io/rb/dorothy2.svg)](http://badge.fury.io/rb/dorothy2)
+
 ##Introduction
 
 Dorothy2 is a framework created for suspicious binary analysis. 
