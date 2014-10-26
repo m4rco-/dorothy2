@@ -16,22 +16,28 @@ Gem::Specification.new do |gem|
   gem.test_files    = gem.files.grep(%r{^(test|spec|features)/})
   gem.extra_rdoc_files = ["README.md"]
   gem.require_paths = ["lib"]
-  gem.required_ruby_version = '>= 1.9.3'
-  gem.add_dependency(%q<net-scp>, [">= 1.0.4"])
-  gem.add_dependency(%q<net-ssh>, [">= 2.2.1"])
-  gem.add_dependency(%q<trollop>, [">= 1.16.2"])
-  gem.add_dependency(%q<rest-client>, [">= 1.6.1"])
-  gem.add_dependency(%q<mime-types>, [">= 1.16"])
+  gem.required_ruby_version = '~> 1.9.3'
+  gem.add_dependency(%q<net-scp>, ["~> 1.1.2"])
+  gem.add_dependency(%q<net-ssh>, ["~> 2.7.0"])
+  gem.add_dependency(%q<trollop>, ["~> 2.0"])
+  gem.add_dependency(%q<rest-client>, ["~> 1.6.7"])
+  gem.add_dependency(%q<mail>, ["~> 2.5.4"])
   gem.add_dependency(%q<colored>, [">= 1.2"])
-  gem.add_dependency(%q<ruby-pg>, [">= 0.7.9.2008.01.28"])
-  gem.add_dependency(%q<virustotal>, [">= 2.0.0"])
-  gem.add_dependency(%q<nokogiri>, ["~> 1.5.10"])
+  gem.add_dependency(%q<pg>, [">= 0.8.0"])
+  gem.add_dependency(%q<nokogiri>, ["~> 1.5.11"])
+  gem.add_dependency(%q<uirusu>, ["~> 0.0.6"])
   gem.add_dependency(%q<rbvmomi>, ["~> 1.6.0"])
-  gem.add_dependency(%q<ruby-filemagic>, [">= 0.4.2"])
+  gem.add_dependency(%q<ruby-filemagic>, ["~> 0.5.0"])
+  gem.add_dependency(%q<activesupport>, ["~> 4.1.6"])
+  gem.add_dependency(%q<activemodel>, ["~> 4.1.6"])
+  gem.add_dependency(%q<activerecord>, ["~> 4.1.0.beta1"])
+  gem.add_dependency(%q<sinatra>, ["~> 1.4.4"])
+  gem.add_dependency(%q<sinatra-activerecord>, ["~> 1.3.0"])
+  gem.add_dependency(%q<sinatra-contrib>, ["~> 1.4.2"])
+  gem.add_dependency(%q<namespace>, ["~> 1.2"])
   #for dparser
-  gem.add_dependency(%q<net-dns>, [">= 0.8.0"])
-  gem.add_dependency(%q<geoip>, [">= 1.2.1"])
-  gem.add_dependency(%q<tmail>, [">= 1.2.7.1"])
-  gem.post_install_message = '\n WARING: If you are upgrating from a previous version, read the UPDATE file!\n'
+  gem.add_dependency(%q<net-dns>, ["~> 0.8.0"])
+  gem.add_dependency(%q<geoip>, ["~> 1.3.5"])
+  gem.add_dependency(%q<whois>, ["~> 3.5.3"])
+  gem.post_install_message = '\n\n\n \t\t WARING: If you are upgrating from a previous version, read the UPDATE file! \t\t\n\n\n'
 end
-
