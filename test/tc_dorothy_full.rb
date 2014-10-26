@@ -4,6 +4,9 @@ require 'dorothy2'          #comment for testing/developmnet
 
 #load '../lib/dorothy2.rb'
 
+
+#Those tests have not been ported to the latest version of dorothy2. They wont work. #TODO: fix this
+
 include Dorothy
 
 LOGGER = DoroLogger.new(STDOUT, "weekly")

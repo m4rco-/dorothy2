@@ -54,11 +54,13 @@ module DoroParser
 
 
 
-    class SMTP   #todo to redo
+    class SMTP   #todo to redo    ##NEW PARSER CODED BY SALVATORE
       attr_reader :hcmd
       attr_reader :hcont
       attr_accessor :body
       attr_accessor :rdata
+
+
 
       def self.body(data)
         email = TMail::Mail.parse(data)

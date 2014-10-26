@@ -43,14 +43,14 @@ module Dorothy
 
     def init_sniffer
       Net::SSH.start(@server, @user, :password => @pass, :port =>@port) do |ssh|
-        ssh.exec "sudo killall tcpdump"
+        ssh.exec "nohup sudo killall tcpdump 2>/dev/null"
       end
     end
 
     def stop_sniffer(pid)
       Net::SSH.start(@server, @user, :password => @pass, :port =>@port) do |ssh|
         ssh.exec "sudo kill -2 #{pid}"
-        #LOGGER.info "[NAM]".yellow + "Tcpdump instance #{pid} stopped"
+        LOGGER.debug "NAM", "Tcpdump instance #{pid} stopped"
       end
     end
 

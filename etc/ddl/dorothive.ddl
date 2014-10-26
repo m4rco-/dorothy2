@@ -2,33 +2,12 @@
 -- PostgreSQL database dump
 --
 
-DROP DATABASE dorothive;
-
-
 SET statement_timeout = 0;
+SET lock_timeout = 0;
 SET client_encoding = 'UTF8';
-SET standard_conforming_strings = off;
+SET standard_conforming_strings = on;
 SET check_function_bodies = false;
 SET client_min_messages = warning;
-SET escape_string_warning = off;
-
---
--- Name: dorothive; Type: DATABASE; Schema: -; Owner: postgres
---
-
-CREATE DATABASE dorothive WITH TEMPLATE = template0 ENCODING = 'UTF8' LC_COLLATE = 'C' LC_CTYPE = 'C';
-
-
-ALTER DATABASE dorothive OWNER TO postgres;
-
-\connect dorothive
-
-SET statement_timeout = 0;
-SET client_encoding = 'UTF8';
-SET standard_conforming_strings = off;
-SET check_function_bodies = false;
-SET client_min_messages = warning;
-SET escape_string_warning = off;
 
 --
 -- Name: dorothy; Type: SCHEMA; Schema: -; Owner: postgres
@@ -47,13 +26,18 @@ COMMENT ON SCHEMA dorothy IS 'standard public schema';
 
 
 --
--- Name: plpgsql; Type: PROCEDURAL LANGUAGE; Schema: -; Owner: postgres
+-- Name: plpgsql; Type: EXTENSION; Schema: -; Owner: 
 --
 
-CREATE OR REPLACE PROCEDURAL LANGUAGE plpgsql;
+CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
 
 
-ALTER PROCEDURAL LANGUAGE plpgsql OWNER TO postgres;
+--
+-- Name: EXTENSION plpgsql; Type: COMMENT; Schema: -; Owner: 
+--
+
+COMMENT ON EXTENSION plpgsql IS 'PL/pgSQL procedural language';
+
 
 SET search_path = dorothy, pg_catalog;
 
@@ -129,6 +113,21 @@ CREATE TYPE layer7_protocols AS ENUM (
 ALTER TYPE dorothy.layer7_protocols OWNER TO postgres;
 
 --
+-- Name: queue_status; Type: TYPE; Schema: dorothy; Owner: postgres
+--
+
+CREATE TYPE queue_status AS ENUM (
+    'cancelled',
+    'pending',
+    'analysed',
+    'processing',
+    'error'
+);
+
+
+ALTER TYPE dorothy.queue_status OWNER TO postgres;
+
+--
 -- Name: sanbox_type; Type: TYPE; Schema: dorothy; Owner: postgres
 --
 
@@ -143,34 +142,6 @@ CREATE TYPE sanbox_type AS ENUM (
 
 ALTER TYPE dorothy.sanbox_type OWNER TO postgres;
 
---
--- Name: sensor_type; Type: TYPE; Schema: dorothy; Owner: postgres
---
-
-CREATE TYPE sensor_type AS ENUM (
-    'low_honey',
-    'high_honey',
-    'mwcollect'
-);
-
-
-ALTER TYPE dorothy.sensor_type OWNER TO postgres;
-
---
--- Name: sensor_type2; Type: TYPE; Schema: dorothy; Owner: postgres
---
-
-CREATE TYPE sensor_type2 AS ENUM (
-    'lowint-honeypot',
-    'highint-honeypot',
-    'unknow',
-    'client-honeypot',
-    'external-source'
-);
-
-
-ALTER TYPE dorothy.sensor_type2 OWNER TO postgres;
-
 SET default_tablespace = '';
 
 SET default_with_oids = false;
@@ -184,7 +155,8 @@ CREATE TABLE analyses (
     sample character(64) NOT NULL,
     sandbox integer NOT NULL,
     traffic_dump character(64) NOT NULL,
-    date timestamp without time zone
+    date timestamp without time zone,
+    queue_id bigint NOT NULL
 );
 
 
@@ -212,87 +184,38 @@ ALTER SEQUENCE analyses_id_seq OWNED BY analyses.id;
 
 
 --
--- Name: analyses_id_seq; Type: SEQUENCE SET; Schema: dorothy; Owner: postgres
+-- Name: queue_id_seq; Type: SEQUENCE; Schema: dorothy; Owner: postgres
 --
 
-SELECT pg_catalog.setval('analyses_id_seq', 1, true);
+CREATE SEQUENCE queue_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
 
+
+ALTER TABLE dorothy.queue_id_seq OWNER TO postgres;
 
 --
--- Name: samples; Type: TABLE; Schema: dorothy; Owner: postgres; Tablespace: 
+-- Name: analysis_queue; Type: TABLE; Schema: dorothy; Owner: postgres; Tablespace: 
 --
 
-CREATE TABLE samples (
-    sha256 character(64) NOT NULL,
-    size integer NOT NULL,
-    path character(256),
-    filename character(256),
-    md5 character(64),
-    long_type character varying,
-    CONSTRAINT size_notneg CHECK ((size >= 0))
+CREATE TABLE analysis_queue (
+    id bigint DEFAULT nextval('queue_id_seq'::regclass) NOT NULL,
+    date timestamp without time zone NOT NULL,
+    "binary" character(64),
+    priority integer DEFAULT 0 NOT NULL,
+    profile character varying DEFAULT 'default'::character varying NOT NULL,
+    source character varying,
+    "user" character varying,
+    filename character varying NOT NULL,
+    status queue_status,
+    sighting bigint
 );
 
 
-ALTER TABLE dorothy.samples OWNER TO postgres;
-
---
--- Name: TABLE samples; Type: COMMENT; Schema: dorothy; Owner: postgres
---
-
-COMMENT ON TABLE samples IS 'Acquired samples';
-
-
---
--- Name: COLUMN samples.hash; Type: COMMENT; Schema: dorothy; Owner: postgres
---
-
-COMMENT ON COLUMN samples.sha256 IS 'SHA256 checksum hash';
-
-
---
--- Name: COLUMN samples.size; Type: COMMENT; Schema: dorothy; Owner: postgres
---
-
-COMMENT ON COLUMN samples.size IS 'Sample size';
-
---
--- Name: CONSTRAINT size_notneg ON samples; Type: COMMENT; Schema: dorothy; Owner: postgres
---
-
-COMMENT ON CONSTRAINT size_notneg ON samples IS 'Sample size must not be negative';
-
-
---
--- Name: traffic_dumps; Type: TABLE; Schema: dorothy; Owner: postgres; Tablespace: 
---
-
-CREATE TABLE traffic_dumps (
-    sha256 character(64) NOT NULL,
-    size integer NOT NULL,
-    pcapr_id character(32),
-    "binary" character varying,
-    parsed boolean
-);
-
-
-ALTER TABLE dorothy.traffic_dumps OWNER TO postgres;
-
---
--- Name: COLUMN traffic_dumps.hash; Type: COMMENT; Schema: dorothy; Owner: postgres
---
-
-COMMENT ON COLUMN traffic_dumps.sha256 IS 'SHA256 checksum hash';
-
-
---
--- Name: analysis_resume_view; Type: VIEW; Schema: dorothy; Owner: postgres
---
-
-CREATE VIEW analysis_resume_view AS
-    SELECT analyses.id, samples.filename, samples.md5, samples.long_type, analyses.date, traffic_dumps.parsed FROM traffic_dumps, samples, analyses WHERE ((analyses.sample = samples.sha256) AND (analyses.traffic_dump = traffic_dumps.sha256)) ORDER BY analyses.id DESC;
-
-
-ALTER TABLE dorothy.analysis_resume_view OWNER TO postgres;
+ALTER TABLE dorothy.analysis_queue OWNER TO postgres;
 
 --
 -- Name: appdata_id_seq; Type: SEQUENCE; Schema: dorothy; Owner: postgres
@@ -307,13 +230,6 @@ CREATE SEQUENCE appdata_id_seq
 
 
 ALTER TABLE dorothy.appdata_id_seq OWNER TO postgres;
-
---
--- Name: appdata_id_seq; Type: SEQUENCE SET; Schema: dorothy; Owner: postgres
---
-
-SELECT pg_catalog.setval('appdata_id_seq', 1, true);
-
 
 --
 -- Name: asns; Type: TABLE; Schema: dorothy; Owner: postgres; Tablespace: 
@@ -359,17 +275,25 @@ ALTER SEQUENCE asns_id_seq OWNED BY asns.id;
 
 
 --
--- Name: asns_id_seq; Type: SEQUENCE SET; Schema: dorothy; Owner: postgres
+-- Name: av_signs; Type: TABLE; Schema: dorothy; Owner: postgres; Tablespace: 
 --
 
-SELECT pg_catalog.setval('asns_id_seq', 1, false);
+CREATE TABLE av_signs (
+    id bigint NOT NULL,
+    av_name character varying NOT NULL,
+    signature character varying NOT NULL,
+    version character varying NOT NULL,
+    updated character varying
+);
 
+
+ALTER TABLE dorothy.av_signs OWNER TO postgres;
 
 --
--- Name: dns_id_seq; Type: SEQUENCE; Schema: dorothy; Owner: postgres
+-- Name: cfg_chk_id_seq; Type: SEQUENCE; Schema: dorothy; Owner: postgres
 --
 
-CREATE SEQUENCE dns_id_seq
+CREATE SEQUENCE cfg_chk_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -377,48 +301,22 @@ CREATE SEQUENCE dns_id_seq
     CACHE 1;
 
 
-ALTER TABLE dorothy.dns_id_seq OWNER TO postgres;
+ALTER TABLE dorothy.cfg_chk_id_seq OWNER TO postgres;
 
 --
--- Name: dns_id_seq; Type: SEQUENCE SET; Schema: dorothy; Owner: postgres
+-- Name: cfg_chk; Type: TABLE; Schema: dorothy; Owner: postgres; Tablespace: 
 --
 
-SELECT pg_catalog.setval('dns_id_seq', 1, true);
-
-
---
--- Name: dns_data; Type: TABLE; Schema: dorothy; Owner: postgres; Tablespace: 
---
-
-CREATE TABLE dns_data (
-    id integer DEFAULT nextval('dns_id_seq'::regclass) NOT NULL,
-    name character varying(255),
-    class integer,
-    qry boolean NOT NULL,
-    ttl integer,
-    flow integer NOT NULL,
-    address inet,
-    data character varying(255),
-    type integer,
-    is_sinkholed boolean
+CREATE TABLE cfg_chk (
+    id bigint DEFAULT nextval('cfg_chk_id_seq'::regclass) NOT NULL,
+    conf_file character varying,
+    md5_chksum character(32) NOT NULL,
+    added timestamp without time zone,
+    last_modified timestamp without time zone
 );
 
 
-ALTER TABLE dorothy.dns_data OWNER TO postgres;
-
---
--- Name: COLUMN dns_data.address; Type: COMMENT; Schema: dorothy; Owner: postgres
---
-
-COMMENT ON COLUMN dns_data.address IS 'type A answer data ';
-
-
---
--- Name: COLUMN dns_data.data; Type: COMMENT; Schema: dorothy; Owner: postgres
---
-
-COMMENT ON COLUMN dns_data.data IS 'in the case it is an answer different from TYPE A ';
-
+ALTER TABLE dorothy.cfg_chk OWNER TO postgres;
 
 --
 -- Name: flows; Type: TABLE; Schema: dorothy; Owner: postgres; Tablespace: 
@@ -481,76 +379,6 @@ COMMENT ON COLUMN flows."time" IS 'Relative time (from the beginning) of the flo
 
 
 --
--- Name: host_ips; Type: TABLE; Schema: dorothy; Owner: postgres; Tablespace: 
---
-
-CREATE TABLE host_ips (
-    ip inet NOT NULL,
-    geoinfo integer,
-    sbl integer,
-    uptime time without time zone,
-    is_online boolean,
-    whois integer,
-    zone text,
-    last_update timestamp without time zone,
-    id integer NOT NULL,
-    dns_name integer,
-    migrated_from integer
-);
-
-
-ALTER TABLE dorothy.host_ips OWNER TO postgres;
-
---
--- Name: host_roles; Type: TABLE; Schema: dorothy; Owner: postgres; Tablespace: 
---
-
-CREATE TABLE host_roles (
-    role integer NOT NULL,
-    host_ip inet NOT NULL
-);
-
-
-ALTER TABLE dorothy.host_roles OWNER TO postgres;
-
---
--- Name: irc_data; Type: TABLE; Schema: dorothy; Owner: postgres; Tablespace: 
---
-
-CREATE TABLE irc_data (
-    id integer NOT NULL,
-    flow integer NOT NULL,
-    data bytea,
-    incoming boolean NOT NULL
-);
-
-
-ALTER TABLE dorothy.irc_data OWNER TO postgres;
-
---
--- Name: roles; Type: TABLE; Schema: dorothy; Owner: postgres; Tablespace: 
---
-
-CREATE TABLE roles (
-    id integer NOT NULL,
-    type character varying(10),
-    comment character varying
-);
-
-
-ALTER TABLE dorothy.roles OWNER TO postgres;
-
---
--- Name: ccprofile_view3; Type: VIEW; Schema: dorothy; Owner: postgres
---
-
-CREATE VIEW ccprofile_view3 AS
-    SELECT DISTINCT host_ips.id AS hostid, host_ips.ip, flows.dstport, traffic_dumps.sha256, irc_data.id, roles.type, dns_data.name, irc_data.data FROM roles, host_roles, host_ips, dns_data, flows, irc_data, traffic_dumps WHERE (((((((((roles.id = host_roles.role) AND (host_roles.host_ip = host_ips.ip)) AND (dns_data.id = host_ips.dns_name)) AND (flows.dest = host_ips.ip)) AND (flows.traffic_dump = traffic_dumps.sha256)) AND (irc_data.flow = flows.id)) AND (irc_data.incoming = false)) AND (host_ips.is_online = true)) AND ((roles.type)::text = 'cc-irc'::text)) ORDER BY irc_data.id, host_ips.id, host_ips.ip, flows.dstport, traffic_dumps.sha256, roles.type, dns_data.name, irc_data.data;
-
-
-ALTER TABLE dorothy.ccprofile_view3 OWNER TO postgres;
-
---
 -- Name: connections_id_seq; Type: SEQUENCE; Schema: dorothy; Owner: postgres
 --
 
@@ -572,10 +400,51 @@ ALTER SEQUENCE connections_id_seq OWNED BY flows.id;
 
 
 --
--- Name: connections_id_seq; Type: SEQUENCE SET; Schema: dorothy; Owner: postgres
+-- Name: dns_id_seq; Type: SEQUENCE; Schema: dorothy; Owner: postgres
 --
 
-SELECT pg_catalog.setval('connections_id_seq', 1, true);
+CREATE SEQUENCE dns_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE dorothy.dns_id_seq OWNER TO postgres;
+
+--
+-- Name: dns_data; Type: TABLE; Schema: dorothy; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE dns_data (
+    id integer DEFAULT nextval('dns_id_seq'::regclass) NOT NULL,
+    name character varying(255),
+    class integer,
+    qry boolean NOT NULL,
+    ttl integer,
+    flow integer NOT NULL,
+    address inet,
+    data character varying(255),
+    type integer,
+    is_sinkholed boolean
+);
+
+
+ALTER TABLE dorothy.dns_data OWNER TO postgres;
+
+--
+-- Name: COLUMN dns_data.address; Type: COMMENT; Schema: dorothy; Owner: postgres
+--
+
+COMMENT ON COLUMN dns_data.address IS 'type A answer data ';
+
+
+--
+-- Name: COLUMN dns_data.data; Type: COMMENT; Schema: dorothy; Owner: postgres
+--
+
+COMMENT ON COLUMN dns_data.data IS 'in the case it is an answer different from TYPE A ';
 
 
 --
@@ -600,20 +469,38 @@ COMMENT ON TABLE downloads IS 'Downloaded sample sighting';
 
 
 --
+-- Name: email_receivers; Type: TABLE; Schema: dorothy; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE email_receivers (
+    address character varying NOT NULL,
+    email_id bigint NOT NULL,
+    mail_field character(5) NOT NULL
+);
+
+
+ALTER TABLE dorothy.email_receivers OWNER TO postgres;
+
+--
 -- Name: emails; Type: TABLE; Schema: dorothy; Owner: postgres; Tablespace: 
 --
 
 CREATE TABLE emails (
-    "from" character(64),
-    "to" character(64),
-    subject character(128),
+    "from" character varying(64),
+    subject character varying(128),
     data bytea,
     id integer NOT NULL,
-    flow bigint NOT NULL,
+    flow bigint,
     hcmd character varying,
     hcont character varying,
     rcode interval,
-    rcont character varying
+    rcont character varying,
+    date timestamp without time zone,
+    message_id character varying,
+    has_attachment boolean,
+    charset character varying,
+    body_sha256 character(64),
+    forwarded_by bigint
 );
 
 
@@ -638,13 +525,6 @@ ALTER TABLE dorothy.emails_id_seq OWNER TO postgres;
 --
 
 ALTER SEQUENCE emails_id_seq OWNED BY emails.id;
-
-
---
--- Name: emails_id_seq; Type: SEQUENCE SET; Schema: dorothy; Owner: postgres
---
-
-SELECT pg_catalog.setval('emails_id_seq', 1, true);
 
 
 --
@@ -710,11 +590,25 @@ ALTER SEQUENCE geoinfo_id_seq OWNED BY geoinfo.id;
 
 
 --
--- Name: geoinfo_id_seq; Type: SEQUENCE SET; Schema: dorothy; Owner: postgres
+-- Name: host_ips; Type: TABLE; Schema: dorothy; Owner: postgres; Tablespace: 
 --
 
-SELECT pg_catalog.setval('geoinfo_id_seq', 1, true);
+CREATE TABLE host_ips (
+    ip inet NOT NULL,
+    geoinfo integer,
+    sbl integer,
+    uptime time without time zone,
+    is_online boolean,
+    whois integer,
+    zone text,
+    last_update timestamp without time zone,
+    id integer NOT NULL,
+    dns_name integer,
+    migrated_from integer
+);
 
+
+ALTER TABLE dorothy.host_ips OWNER TO postgres;
 
 --
 -- Name: host_ips_id_seq; Type: SEQUENCE; Schema: dorothy; Owner: postgres
@@ -738,11 +632,16 @@ ALTER SEQUENCE host_ips_id_seq OWNED BY host_ips.id;
 
 
 --
--- Name: host_ips_id_seq; Type: SEQUENCE SET; Schema: dorothy; Owner: postgres
+-- Name: host_roles; Type: TABLE; Schema: dorothy; Owner: postgres; Tablespace: 
 --
 
-SELECT pg_catalog.setval('host_ips_id_seq', 1, true);
+CREATE TABLE host_roles (
+    role integer NOT NULL,
+    host_ip inet NOT NULL
+);
 
+
+ALTER TABLE dorothy.host_roles OWNER TO postgres;
 
 --
 -- Name: http_data; Type: TABLE; Schema: dorothy; Owner: postgres; Tablespace: 
@@ -775,6 +674,20 @@ CREATE TABLE http_headers (
 ALTER TABLE dorothy.http_headers OWNER TO postgres;
 
 --
+-- Name: irc_data; Type: TABLE; Schema: dorothy; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE irc_data (
+    id integer NOT NULL,
+    flow integer NOT NULL,
+    data bytea,
+    incoming boolean NOT NULL
+);
+
+
+ALTER TABLE dorothy.irc_data OWNER TO postgres;
+
+--
 -- Name: irc_data_connection_seq; Type: SEQUENCE; Schema: dorothy; Owner: postgres
 --
 
@@ -796,11 +709,18 @@ ALTER SEQUENCE irc_data_connection_seq OWNED BY irc_data.flow;
 
 
 --
--- Name: irc_data_connection_seq; Type: SEQUENCE SET; Schema: dorothy; Owner: postgres
+-- Name: malwares_id_seq; Type: SEQUENCE; Schema: dorothy; Owner: postgres
 --
 
-SELECT pg_catalog.setval('irc_data_connection_seq', 1, true);
+CREATE SEQUENCE malwares_id_seq
+    START WITH 0
+    INCREMENT BY 1
+    MINVALUE 0
+    NO MAXVALUE
+    CACHE 1;
 
+
+ALTER TABLE dorothy.malwares_id_seq OWNER TO postgres;
 
 --
 -- Name: malwares; Type: TABLE; Schema: dorothy; Owner: postgres; Tablespace: 
@@ -808,12 +728,11 @@ SELECT pg_catalog.setval('irc_data_connection_seq', 1, true);
 
 CREATE TABLE malwares (
     bin character(64) NOT NULL,
-    family character(64) NOT NULL,
-    vendor character(64),
-    version character(16),
     rate character(8),
-    update integer,
-    detected boolean NOT NULL
+    detected boolean NOT NULL,
+    date timestamp without time zone,
+    link character varying,
+    id bigint DEFAULT nextval('malwares_id_seq'::regclass) NOT NULL
 );
 
 
@@ -855,11 +774,17 @@ ALTER SEQUENCE reports_id_seq OWNED BY reports.id;
 
 
 --
--- Name: reports_id_seq; Type: SEQUENCE SET; Schema: dorothy; Owner: postgres
+-- Name: roles; Type: TABLE; Schema: dorothy; Owner: postgres; Tablespace: 
 --
 
-SELECT pg_catalog.setval('reports_id_seq', 1, false);
+CREATE TABLE roles (
+    id integer NOT NULL,
+    type character varying(10),
+    comment character varying
+);
 
+
+ALTER TABLE dorothy.roles OWNER TO postgres;
 
 --
 -- Name: roles_id_seq; Type: SEQUENCE; Schema: dorothy; Owner: postgres
@@ -883,10 +808,48 @@ ALTER SEQUENCE roles_id_seq OWNED BY roles.id;
 
 
 --
--- Name: roles_id_seq; Type: SEQUENCE SET; Schema: dorothy; Owner: postgres
+-- Name: samples; Type: TABLE; Schema: dorothy; Owner: postgres; Tablespace: 
 --
 
-SELECT pg_catalog.setval('roles_id_seq', 1, false);
+CREATE TABLE samples (
+    sha256 character(64) NOT NULL,
+    size integer NOT NULL,
+    path character varying(256),
+    filename character varying(256),
+    md5 character(32),
+    long_type character varying,
+    CONSTRAINT size_notneg CHECK ((size >= 0))
+);
+
+
+ALTER TABLE dorothy.samples OWNER TO postgres;
+
+--
+-- Name: TABLE samples; Type: COMMENT; Schema: dorothy; Owner: postgres
+--
+
+COMMENT ON TABLE samples IS 'Acquired samples';
+
+
+--
+-- Name: COLUMN samples.sha256; Type: COMMENT; Schema: dorothy; Owner: postgres
+--
+
+COMMENT ON COLUMN samples.sha256 IS 'SHA256 checksum hash';
+
+
+--
+-- Name: COLUMN samples.size; Type: COMMENT; Schema: dorothy; Owner: postgres
+--
+
+COMMENT ON COLUMN samples.size IS 'Sample size';
+
+
+--
+-- Name: CONSTRAINT size_notneg ON samples; Type: COMMENT; Schema: dorothy; Owner: postgres
+--
+
+COMMENT ON CONSTRAINT size_notneg ON samples IS 'Sample size must not be negative';
 
 
 --
@@ -896,8 +859,8 @@ SELECT pg_catalog.setval('roles_id_seq', 1, false);
 CREATE TABLE sandboxes (
     id integer NOT NULL,
     hostname character varying(30) NOT NULL,
-    type sanbox_type NOT NULL,
-    "OS" character varying NOT NULL,
+    sandbox_type sanbox_type NOT NULL,
+    os character varying NOT NULL,
     version character varying,
     os_lang character(4),
     ipaddress inet,
@@ -931,38 +894,10 @@ ALTER SEQUENCE sandboxes_id_seq OWNED BY sandboxes.id;
 
 
 --
--- Name: sandboxes_id_seq; Type: SEQUENCE SET; Schema: dorothy; Owner: postgres
+-- Name: sightings_id_seq; Type: SEQUENCE; Schema: dorothy; Owner: postgres
 --
 
-SELECT pg_catalog.setval('sandboxes_id_seq', 1, true);
-
-
---
--- Name: sensors; Type: TABLE; Schema: dorothy; Owner: postgres; Tablespace: 
---
-
-CREATE TABLE sensors (
-    id integer NOT NULL,
-    name character varying(40) NOT NULL,
-    host integer NOT NULL,
-    type sensor_type2 NOT NULL
-);
-
-
-ALTER TABLE dorothy.sensors OWNER TO postgres;
-
---
--- Name: TABLE sensors; Type: COMMENT; Schema: dorothy; Owner: postgres
---
-
-COMMENT ON TABLE sensors IS 'Malware sensors';
-
-
---
--- Name: sensors_id_seq; Type: SEQUENCE; Schema: dorothy; Owner: postgres
---
-
-CREATE SEQUENCE sensors_id_seq
+CREATE SEQUENCE sightings_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -970,21 +905,7 @@ CREATE SEQUENCE sensors_id_seq
     CACHE 1;
 
 
-ALTER TABLE dorothy.sensors_id_seq OWNER TO postgres;
-
---
--- Name: sensors_id_seq; Type: SEQUENCE OWNED BY; Schema: dorothy; Owner: postgres
---
-
-ALTER SEQUENCE sensors_id_seq OWNED BY sensors.id;
-
-
---
--- Name: sensors_id_seq; Type: SEQUENCE SET; Schema: dorothy; Owner: postgres
---
-
-SELECT pg_catalog.setval('sensors_id_seq', 1, false);
-
+ALTER TABLE dorothy.sightings_id_seq OWNER TO postgres;
 
 --
 -- Name: sightings; Type: TABLE; Schema: dorothy; Owner: postgres; Tablespace: 
@@ -994,7 +915,8 @@ CREATE TABLE sightings (
     sample character(64) NOT NULL,
     sensor integer NOT NULL,
     date timestamp without time zone NOT NULL,
-    traffic_dump character(64)
+    id bigint DEFAULT nextval('sightings_id_seq'::regclass) NOT NULL,
+    src_email bigint
 );
 
 
@@ -1004,7 +926,7 @@ ALTER TABLE dorothy.sightings OWNER TO postgres;
 -- Name: TABLE sightings; Type: COMMENT; Schema: dorothy; Owner: postgres
 --
 
-COMMENT ON TABLE sightings IS 'Malware sample sightings on sensors';
+COMMENT ON TABLE sightings IS 'Malware sample sightings on sources';
 
 
 --
@@ -1020,6 +942,79 @@ COMMENT ON COLUMN sightings.sample IS 'Sample hash';
 
 COMMENT ON COLUMN sightings.sensor IS '
 ';
+
+
+--
+-- Name: sources_id_seq; Type: SEQUENCE; Schema: dorothy; Owner: postgres
+--
+
+CREATE SEQUENCE sources_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE dorothy.sources_id_seq OWNER TO postgres;
+
+--
+-- Name: sources; Type: TABLE; Schema: dorothy; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE sources (
+    id integer DEFAULT nextval('sources_id_seq'::regclass) NOT NULL,
+    sname character varying NOT NULL,
+    stype character varying NOT NULL,
+    disabled boolean DEFAULT false,
+    host character varying,
+    geo integer,
+    added timestamp without time zone,
+    last_modified timestamp without time zone,
+    localdir character varying
+);
+
+
+ALTER TABLE dorothy.sources OWNER TO postgres;
+
+--
+-- Name: sys_procs; Type: TABLE; Schema: dorothy; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE sys_procs (
+    analysis_id integer NOT NULL,
+    pid integer NOT NULL,
+    name character varying,
+    owner character varying,
+    "cmdLine" character varying,
+    "startTime" timestamp without time zone,
+    "endTime" timestamp without time zone,
+    "exitCode" integer
+);
+
+
+ALTER TABLE dorothy.sys_procs OWNER TO postgres;
+
+--
+-- Name: traffic_dumps; Type: TABLE; Schema: dorothy; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE traffic_dumps (
+    sha256 character(64) NOT NULL,
+    size integer NOT NULL,
+    pcapr_id character(32),
+    "binary" character varying,
+    parsed boolean
+);
+
+
+ALTER TABLE dorothy.traffic_dumps OWNER TO postgres;
+
+--
+-- Name: COLUMN traffic_dumps.sha256; Type: COMMENT; Schema: dorothy; Owner: postgres
+--
+
+COMMENT ON COLUMN traffic_dumps.sha256 IS 'SHA256 checksum hash';
 
 
 --
@@ -1064,34 +1059,6 @@ ALTER TABLE dorothy.whois_id_seq OWNER TO postgres;
 
 ALTER SEQUENCE whois_id_seq OWNED BY whois.id;
 
-
---
--- Name: whois_id_seq; Type: SEQUENCE SET; Schema: dorothy; Owner: postgres
---
-
-SELECT pg_catalog.setval('whois_id_seq', 1, false);
-
-
-
-
-
---
--- Name: sys_procs; Type: TABLE; Schema: dorothy; Owner: postgres; Tablespace:
---
-
-CREATE TABLE sys_procs (
-    analysis_id integer NOT NULL,
-    pid integer NOT NULL,
-    name character varying,
-    owner character varying,
-    "cmdLine" character varying,
-    "startTime" timestamp without time zone,
-    "endTime" timestamp without time zone,
-    "exitCode" integer
-);
-
-
-ALTER TABLE dorothy.sys_procs OWNER TO postgres;
 
 --
 -- Name: id; Type: DEFAULT; Schema: dorothy; Owner: postgres
@@ -1167,13 +1134,6 @@ ALTER TABLE ONLY sandboxes ALTER COLUMN id SET DEFAULT nextval('sandboxes_id_seq
 -- Name: id; Type: DEFAULT; Schema: dorothy; Owner: postgres
 --
 
-ALTER TABLE ONLY sensors ALTER COLUMN id SET DEFAULT nextval('sensors_id_seq'::regclass);
-
-
---
--- Name: id; Type: DEFAULT; Schema: dorothy; Owner: postgres
---
-
 ALTER TABLE ONLY whois ALTER COLUMN id SET DEFAULT nextval('whois_id_seq'::regclass);
 
 
@@ -1181,8 +1141,30 @@ ALTER TABLE ONLY whois ALTER COLUMN id SET DEFAULT nextval('whois_id_seq'::regcl
 -- Data for Name: analyses; Type: TABLE DATA; Schema: dorothy; Owner: postgres
 --
 
-COPY analyses (id, sample, sandbox, traffic_dump, date) FROM stdin;
+COPY analyses (id, sample, sandbox, traffic_dump, date, queue_id) FROM stdin;
 \.
+
+
+--
+-- Name: analyses_id_seq; Type: SEQUENCE SET; Schema: dorothy; Owner: postgres
+--
+
+SELECT pg_catalog.setval('analyses_id_seq', 1, false);
+
+
+--
+-- Data for Name: analysis_queue; Type: TABLE DATA; Schema: dorothy; Owner: postgres
+--
+
+COPY analysis_queue (id, date, "binary", priority, profile, source, "user", filename, status, sighting) FROM stdin;
+\.
+
+
+--
+-- Name: appdata_id_seq; Type: SEQUENCE SET; Schema: dorothy; Owner: postgres
+--
+
+SELECT pg_catalog.setval('appdata_id_seq', 1, false);
 
 
 --
@@ -1194,11 +1176,55 @@ COPY asns (handle, owner, country, confidence, id) FROM stdin;
 
 
 --
+-- Name: asns_id_seq; Type: SEQUENCE SET; Schema: dorothy; Owner: postgres
+--
+
+SELECT pg_catalog.setval('asns_id_seq', 1, false);
+
+
+--
+-- Data for Name: av_signs; Type: TABLE DATA; Schema: dorothy; Owner: postgres
+--
+
+COPY av_signs (id, av_name, signature, version, updated) FROM stdin;
+\.
+
+
+--
+-- Data for Name: cfg_chk; Type: TABLE DATA; Schema: dorothy; Owner: postgres
+--
+
+COPY cfg_chk (id, conf_file, md5_chksum, added, last_modified) FROM stdin;
+\.
+
+
+--
+-- Name: cfg_chk_id_seq; Type: SEQUENCE SET; Schema: dorothy; Owner: postgres
+--
+
+SELECT pg_catalog.setval('cfg_chk_id_seq', 1, false);
+
+
+--
+-- Name: connections_id_seq; Type: SEQUENCE SET; Schema: dorothy; Owner: postgres
+--
+
+SELECT pg_catalog.setval('connections_id_seq', 1, false);
+
+
+--
 -- Data for Name: dns_data; Type: TABLE DATA; Schema: dorothy; Owner: postgres
 --
 
 COPY dns_data (id, name, class, qry, ttl, flow, address, data, type, is_sinkholed) FROM stdin;
 \.
+
+
+--
+-- Name: dns_id_seq; Type: SEQUENCE SET; Schema: dorothy; Owner: postgres
+--
+
+SELECT pg_catalog.setval('dns_id_seq', 1, false);
 
 
 --
@@ -1210,11 +1236,26 @@ COPY downloads (sample, flow, path, filename) FROM stdin;
 
 
 --
+-- Data for Name: email_receivers; Type: TABLE DATA; Schema: dorothy; Owner: postgres
+--
+
+COPY email_receivers (address, email_id, mail_field) FROM stdin;
+\.
+
+
+--
 -- Data for Name: emails; Type: TABLE DATA; Schema: dorothy; Owner: postgres
 --
 
-COPY emails ("from", "to", subject, data, id, flow, hcmd, hcont, rcode, rcont) FROM stdin;
+COPY emails ("from", subject, data, id, flow, hcmd, hcont, rcode, rcont, date, message_id, has_attachment, charset, body_sha256, forwarded_by) FROM stdin;
 \.
+
+
+--
+-- Name: emails_id_seq; Type: SEQUENCE SET; Schema: dorothy; Owner: postgres
+--
+
+SELECT pg_catalog.setval('emails_id_seq', 1, false);
 
 
 --
@@ -1242,11 +1283,25 @@ COPY geoinfo (id, longlat, country, city, "last-update", asn) FROM stdin;
 
 
 --
+-- Name: geoinfo_id_seq; Type: SEQUENCE SET; Schema: dorothy; Owner: postgres
+--
+
+SELECT pg_catalog.setval('geoinfo_id_seq', 1, false);
+
+
+--
 -- Data for Name: host_ips; Type: TABLE DATA; Schema: dorothy; Owner: postgres
 --
 
 COPY host_ips (ip, geoinfo, sbl, uptime, is_online, whois, zone, last_update, id, dns_name, migrated_from) FROM stdin;
 \.
+
+
+--
+-- Name: host_ips_id_seq; Type: SEQUENCE SET; Schema: dorothy; Owner: postgres
+--
+
+SELECT pg_catalog.setval('host_ips_id_seq', 1, false);
 
 
 --
@@ -1282,11 +1337,32 @@ COPY irc_data (id, flow, data, incoming) FROM stdin;
 
 
 --
+-- Name: irc_data_connection_seq; Type: SEQUENCE SET; Schema: dorothy; Owner: postgres
+--
+
+SELECT pg_catalog.setval('irc_data_connection_seq', 1, false);
+
+
+--
 -- Data for Name: malwares; Type: TABLE DATA; Schema: dorothy; Owner: postgres
 --
 
-COPY malwares (bin, family, vendor, version, rate, update, detected) FROM stdin;
+COPY malwares (bin, rate, detected, date, link, id) FROM stdin;
 \.
+
+
+--
+-- Name: malwares_id_seq; Type: SEQUENCE SET; Schema: dorothy; Owner: postgres
+--
+
+SELECT pg_catalog.setval('malwares_id_seq', 0, false);
+
+
+--
+-- Name: queue_id_seq; Type: SEQUENCE SET; Schema: dorothy; Owner: postgres
+--
+
+SELECT pg_catalog.setval('queue_id_seq', 1, false);
 
 
 --
@@ -1298,6 +1374,13 @@ COPY reports (id, sandbox, sample, data) FROM stdin;
 
 
 --
+-- Name: reports_id_seq; Type: SEQUENCE SET; Schema: dorothy; Owner: postgres
+--
+
+SELECT pg_catalog.setval('reports_id_seq', 1, false);
+
+
+--
 -- Data for Name: roles; Type: TABLE DATA; Schema: dorothy; Owner: postgres
 --
 
@@ -1306,9 +1389,17 @@ COPY roles (id, type, comment) FROM stdin;
 1	cc-irc	\N
 2	SPAM	\N
 3	cc-drop	\N
-5	cc-support	\N
 4	unknown	\N
+5	cc-support	\N
+6	phishing	\N
 \.
+
+
+--
+-- Name: roles_id_seq; Type: SEQUENCE SET; Schema: dorothy; Owner: postgres
+--
+
+SELECT pg_catalog.setval('roles_id_seq', 1, false);
 
 
 --
@@ -1323,26 +1414,52 @@ COPY samples (sha256, size, path, filename, md5, long_type) FROM stdin;
 -- Data for Name: sandboxes; Type: TABLE DATA; Schema: dorothy; Owner: postgres
 --
 
-COPY sandboxes (id, hostname, type, "OS", version, os_lang, ipaddress, username, password, is_available) FROM stdin;
+COPY sandboxes (id, hostname, sandbox_type, os, version, os_lang, ipaddress, username, password, is_available) FROM stdin;
 \.
 
 
 --
--- Data for Name: sensors; Type: TABLE DATA; Schema: dorothy; Owner: postgres
+-- Name: sandboxes_id_seq; Type: SEQUENCE SET; Schema: dorothy; Owner: postgres
 --
 
-COPY sensors (id, name, host, type) FROM stdin;
-0	hp1-dionaea	0	lowint-honeypot
-2	userinput	0	unknow
-1	ztracker	0	external-source
-\.
+SELECT pg_catalog.setval('sandboxes_id_seq', 1, false);
 
 
 --
 -- Data for Name: sightings; Type: TABLE DATA; Schema: dorothy; Owner: postgres
 --
 
-COPY sightings (sample, sensor, date, traffic_dump) FROM stdin;
+COPY sightings (sample, sensor, date, id, src_email) FROM stdin;
+\.
+
+
+--
+-- Name: sightings_id_seq; Type: SEQUENCE SET; Schema: dorothy; Owner: postgres
+--
+
+SELECT pg_catalog.setval('sightings_id_seq', 1, false);
+
+
+--
+-- Data for Name: sources; Type: TABLE DATA; Schema: dorothy; Owner: postgres
+--
+
+COPY sources (id, sname, stype, disabled, host, geo, added, last_modified, localdir) FROM stdin;
+\.
+
+
+--
+-- Name: sources_id_seq; Type: SEQUENCE SET; Schema: dorothy; Owner: postgres
+--
+
+SELECT pg_catalog.setval('sources_id_seq', 1, false);
+
+
+--
+-- Data for Name: sys_procs; Type: TABLE DATA; Schema: dorothy; Owner: postgres
+--
+
+COPY sys_procs (analysis_id, pid, name, owner, "cmdLine", "startTime", "endTime", "exitCode") FROM stdin;
 \.
 
 
@@ -1351,7 +1468,7 @@ COPY sightings (sample, sensor, date, traffic_dump) FROM stdin;
 --
 
 COPY traffic_dumps (sha256, size, pcapr_id, "binary", parsed) FROM stdin;
-EMPTYPCAP	0	ffff	ffff	true
+EMPTYPCAP                                                       	0	fffffff                         	ffff	t
 \.
 
 
@@ -1361,6 +1478,13 @@ EMPTYPCAP	0	ffff	ffff	true
 
 COPY whois (id, query, data, abuse, "last-update") FROM stdin;
 \.
+
+
+--
+-- Name: whois_id_seq; Type: SEQUENCE SET; Schema: dorothy; Owner: postgres
+--
+
+SELECT pg_catalog.setval('whois_id_seq', 1, false);
 
 
 --
@@ -1387,11 +1511,35 @@ ALTER TABLE ONLY asns
 
 
 --
+-- Name: av_signs_pk; Type: CONSTRAINT; Schema: dorothy; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY av_signs
+    ADD CONSTRAINT av_signs_pk PRIMARY KEY (id, av_name);
+
+
+--
+-- Name: cfg_chk_pk_id; Type: CONSTRAINT; Schema: dorothy; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY cfg_chk
+    ADD CONSTRAINT cfg_chk_pk_id PRIMARY KEY (id);
+
+
+--
 -- Name: dns_data_pkey; Type: CONSTRAINT; Schema: dorothy; Owner: postgres; Tablespace: 
 --
 
 ALTER TABLE ONLY dns_data
     ADD CONSTRAINT dns_data_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: email_rcv_pk; Type: CONSTRAINT; Schema: dorothy; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY email_receivers
+    ADD CONSTRAINT email_rcv_pk PRIMARY KEY (address, email_id, mail_field);
 
 
 --
@@ -1408,14 +1556,6 @@ ALTER TABLE ONLY ftp_data
 
 ALTER TABLE ONLY geoinfo
     ADD CONSTRAINT geoinfo_pkey PRIMARY KEY (id);
-
-
---
--- Name: hash; Type: CONSTRAINT; Schema: dorothy; Owner: postgres; Tablespace: 
---
-
-ALTER TABLE ONLY samples
-    ADD CONSTRAINT sha256 PRIMARY KEY (sha256);
 
 
 --
@@ -1459,6 +1599,14 @@ ALTER TABLE ONLY host_ips
 
 
 --
+-- Name: malwares_pk; Type: CONSTRAINT; Schema: dorothy; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY malwares
+    ADD CONSTRAINT malwares_pk PRIMARY KEY (id);
+
+
+--
 -- Name: pk_connection; Type: CONSTRAINT; Schema: dorothy; Owner: postgres; Tablespace: 
 --
 
@@ -1481,12 +1629,22 @@ ALTER TABLE ONLY host_ips
 ALTER TABLE ONLY irc_data
     ADD CONSTRAINT pk_irc PRIMARY KEY (id);
 
+
 --
--- Name: procs-pk; Type: CONSTRAINT; Schema: dorothy; Owner: postgres; Tablespace:
+-- Name: procs-pk; Type: CONSTRAINT; Schema: dorothy; Owner: postgres; Tablespace: 
 --
 
 ALTER TABLE ONLY sys_procs
     ADD CONSTRAINT "procs-pk" PRIMARY KEY (analysis_id, pid);
+
+
+--
+-- Name: queue_id_pk; Type: CONSTRAINT; Schema: dorothy; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY analysis_queue
+    ADD CONSTRAINT queue_id_pk PRIMARY KEY (id);
+
 
 --
 -- Name: reports_pkey; Type: CONSTRAINT; Schema: dorothy; Owner: postgres; Tablespace: 
@@ -1513,11 +1671,28 @@ ALTER TABLE ONLY sandboxes
 
 
 --
--- Name: sensors_pkey; Type: CONSTRAINT; Schema: dorothy; Owner: postgres; Tablespace: 
+-- Name: sha256; Type: CONSTRAINT; Schema: dorothy; Owner: postgres; Tablespace: 
 --
 
-ALTER TABLE ONLY sensors
-    ADD CONSTRAINT sensors_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY samples
+    ADD CONSTRAINT sha256 PRIMARY KEY (sha256);
+
+
+--
+-- Name: sightings_pk_id; Type: CONSTRAINT; Schema: dorothy; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY sightings
+    ADD CONSTRAINT sightings_pk_id PRIMARY KEY (id);
+
+
+--
+-- Name: sources_id_pk; Type: CONSTRAINT; Schema: dorothy; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY sources
+    ADD CONSTRAINT sources_id_pk PRIMARY KEY (id);
+
 
 --
 -- Name: traffic_dumps_pkey; Type: CONSTRAINT; Schema: dorothy; Owner: postgres; Tablespace: 
@@ -1541,6 +1716,13 @@ ALTER TABLE ONLY sandboxes
 
 ALTER TABLE ONLY whois
     ADD CONSTRAINT whois_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: fki_analysis_queue_fk_sighting_id; Type: INDEX; Schema: dorothy; Owner: postgres; Tablespace: 
+--
+
+CREATE INDEX fki_analysis_queue_fk_sighting_id ON analysis_queue USING btree (sighting);
 
 
 --
@@ -1586,6 +1768,13 @@ CREATE INDEX fki_email ON emails USING btree (flow);
 
 
 --
+-- Name: fki_email_rcv_fk_emails_id; Type: INDEX; Schema: dorothy; Owner: postgres; Tablespace: 
+--
+
+CREATE INDEX fki_email_rcv_fk_emails_id ON email_receivers USING btree (email_id);
+
+
+--
 -- Name: fki_flow; Type: INDEX; Schema: dorothy; Owner: postgres; Tablespace: 
 --
 
@@ -1611,6 +1800,13 @@ CREATE INDEX fki_host ON host_roles USING btree (host_ip);
 --
 
 CREATE INDEX fki_irc ON irc_data USING btree (flow);
+
+
+--
+-- Name: fki_queue_id_fk; Type: INDEX; Schema: dorothy; Owner: postgres; Tablespace: 
+--
+
+CREATE INDEX fki_queue_id_fk ON analyses USING btree (queue_id);
 
 
 --
@@ -1640,12 +1836,30 @@ CREATE INDEX fki_shash ON reports USING btree (sample);
 
 CREATE INDEX fki_tdumps ON analyses USING btree (traffic_dump);
 
+
 --
 -- Name: anal_id-fk; Type: FK CONSTRAINT; Schema: dorothy; Owner: postgres
 --
 
 ALTER TABLE ONLY sys_procs
     ADD CONSTRAINT "anal_id-fk" FOREIGN KEY (analysis_id) REFERENCES analyses(id);
+
+
+--
+-- Name: analysis_queue_fk_sighting_id; Type: FK CONSTRAINT; Schema: dorothy; Owner: postgres
+--
+
+ALTER TABLE ONLY analysis_queue
+    ADD CONSTRAINT analysis_queue_fk_sighting_id FOREIGN KEY (sighting) REFERENCES sightings(id);
+
+
+--
+-- Name: av_signs_fk; Type: FK CONSTRAINT; Schema: dorothy; Owner: postgres
+--
+
+ALTER TABLE ONLY av_signs
+    ADD CONSTRAINT av_signs_fk FOREIGN KEY (id) REFERENCES malwares(id);
+
 
 --
 -- Name: dest_ip; Type: FK CONSTRAINT; Schema: dorothy; Owner: postgres
@@ -1669,6 +1883,14 @@ ALTER TABLE ONLY host_ips
 
 ALTER TABLE ONLY flows
     ADD CONSTRAINT dumps FOREIGN KEY (traffic_dump) REFERENCES traffic_dumps(sha256);
+
+
+--
+-- Name: email_rcv_fk_emails_id; Type: FK CONSTRAINT; Schema: dorothy; Owner: postgres
+--
+
+ALTER TABLE ONLY email_receivers
+    ADD CONSTRAINT email_rcv_fk_emails_id FOREIGN KEY (email_id) REFERENCES emails(id);
 
 
 --
@@ -1736,11 +1958,27 @@ ALTER TABLE ONLY host_roles
 
 
 --
+-- Name: queue_id_fk; Type: FK CONSTRAINT; Schema: dorothy; Owner: postgres
+--
+
+ALTER TABLE ONLY analyses
+    ADD CONSTRAINT queue_id_fk FOREIGN KEY (queue_id) REFERENCES analysis_queue(id);
+
+
+--
 -- Name: role_fkey; Type: FK CONSTRAINT; Schema: dorothy; Owner: postgres
 --
 
 ALTER TABLE ONLY host_roles
     ADD CONSTRAINT role_fkey FOREIGN KEY (role) REFERENCES roles(id);
+
+
+--
+-- Name: sample_fk; Type: FK CONSTRAINT; Schema: dorothy; Owner: postgres
+--
+
+ALTER TABLE ONLY analysis_queue
+    ADD CONSTRAINT sample_fk FOREIGN KEY ("binary") REFERENCES samples(sha256);
 
 
 --
@@ -1760,19 +1998,27 @@ ALTER TABLE ONLY sightings
 
 
 --
--- Name: sensor_fkey; Type: FK CONSTRAINT; Schema: dorothy; Owner: postgres
---
-
-ALTER TABLE ONLY sightings
-    ADD CONSTRAINT sensor_fkey FOREIGN KEY (sensor) REFERENCES sensors(id);
-
-
---
 -- Name: shash; Type: FK CONSTRAINT; Schema: dorothy; Owner: postgres
 --
 
 ALTER TABLE ONLY reports
     ADD CONSTRAINT shash FOREIGN KEY (sample) REFERENCES samples(sha256);
+
+
+--
+-- Name: sightings_fk_emails; Type: FK CONSTRAINT; Schema: dorothy; Owner: postgres
+--
+
+ALTER TABLE ONLY sightings
+    ADD CONSTRAINT sightings_fk_emails FOREIGN KEY (src_email) REFERENCES emails(id);
+
+
+--
+-- Name: sightings_fk_sources_id; Type: FK CONSTRAINT; Schema: dorothy; Owner: postgres
+--
+
+ALTER TABLE ONLY sightings
+    ADD CONSTRAINT sightings_fk_sources_id FOREIGN KEY (sensor) REFERENCES sources(id);
 
 
 --
@@ -1800,7 +2046,7 @@ REVOKE ALL ON SCHEMA dorothy FROM postgres;
 GRANT ALL ON SCHEMA dorothy TO postgres;
 GRANT ALL ON SCHEMA dorothy TO PUBLIC;
 
-
 --
 -- PostgreSQL database dump complete
 --
+

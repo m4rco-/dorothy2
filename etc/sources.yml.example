@@ -4,7 +4,7 @@
 ###
 ### type means the communication channel used
 ### to download the binaries, possible values
-### are: system | ssh
+### are: system | ssh |  mail
 ###
 ### typeid defines the type of the source, it
 ### depends on a userdefined-type in
@@ -17,10 +17,20 @@
 ### 2  - unknown
 #############################################
 ---
+#dont change the name of the webgui source, or if wont work. Change only the local path, the priority and the profile
+webgui:
+    type: web
+    localdir: /opt/dorothy2/opt/bins/web
+    typeid: 1
+
+#Examples below
 malwarefolder:
     type: system
-    localdir: /Users/m4rco/dorothy2/opt/bins/manual
+    localdir: /opt/dorothy2/opt/bins/manual
     typeid: 2
+    priority: 1
+    profile: test
+
 honeypot1:
     type: ssh
     ip: 1.2.3.4
@@ -30,3 +40,18 @@ honeypot1:
     remotedir: /asda/bins
     localdir: /opt/bins/honeypot
     typeid: 0
+    priority: 1
+    profile: test
+
+mailpot@example.com:
+    type: mail
+    localdir: /opt/dorothy2/opt/bins/mailpot@example.com
+    typeid: 1
+    address: pop-mail.outlook.com
+    username:  mailpot@example.com
+    password: myPASS
+    port: 995
+    enable_ssl: true
+    metodo_analisi: 1
+    priority: 2
+    profile: test

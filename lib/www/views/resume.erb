@@ -18,7 +18,7 @@
     <td><%= @sample.md5 %></td>
   </tr>
   <tr>
-    <td>SHA1:</td>
+    <td>SHA256:</td>
     <td><%= @sample.sha256 %></td>
   </tr>
   <tr>
@@ -48,12 +48,20 @@
     <% else %>
           <td>Standing to VirusTotal, it doesn't detect it</td>
     <% end %>
- </tr>
-
-
-
+    </tr>
 </table>
 <br>
+
+<% unless @mailid.nil?  %>
+
+<table border="1">
+<tr>
+  <td>This sample was attached to Email ID <a href="javascript:window.open('/email/view/<%= @mailid %>','Email resume','width=600,height=400')"><%= @mailid %></a> </td>
+</tr>
+</table>
+
+<% end %>
+
 <br>
 <br>
 <h1>System Processes Spowned</h1>
@@ -110,7 +118,7 @@
   </tr>
   <% @flows.each do |flow| %>
       <tr>
-        <td><a href="<%= "/net/#{@net_dumps.first.sha256}/flow/#{flow.relative_id}" %>"><%= flow.relative_id %></a></td>
+        <td><%= flow.relative_id %></td>
         <td><%= flow.time %></td>
         <td><%= flow.duration %></td>
         <td><%= flow.source %></td>

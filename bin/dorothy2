@@ -7,10 +7,66 @@
 require 'rubygems'
 require 'trollop'
 require 'dorothy2'          #comment for testing/developmnet
+require 'doroParser'
 
 #load '../lib/dorothy2.rb'  #uncomment for testing/developmnet
+#load '../lib/doroParser.rb'
+
 
 include Dorothy
+include DoroParser
+
+def start_wgui
+  DoroGUI.run!(
+      :environment => DoroSettings.wgui[:environment],
+      :bind => DoroSettings.wgui[:host],
+      :port => DoroSettings.wgui[:port])
+end
+
+
+def doro_forker(dmodule)
+  fork do
+
+    unless Util.check_pid_file(DoroSettings.env[:pidfiles] + "/#{dmodule}.pid")
+
+      puts "[" + "+".red + "] " + "[#{dmodule.upcase}]".yellow + " Going in backround with pid #{Process.pid}"
+      Util.create_pid_file(DoroSettings.env[:pidfiles] + "/#{dmodule}.pid", Process.pid)
+
+      case dmodule
+        when 'webgui'
+          puts "[" + "+".red + "] " + "[#{dmodule.upcase}]".yellow + " Launching Web interface at http://#{DoroSettings.wgui[:host]}:#{DoroSettings.wgui[:port]}"
+          require File.dirname(__FILE__) + '/../lib/doroGUI'
+          puts "[" + "+".red + "] " + "[#{dmodule.upcase}]".yellow + " Logging at #{DoroSettings.wgui[:logfile]}"   if DEBUG
+
+          STDOUT.reopen DoroSettings.wgui[:logfile]
+          STDERR.reopen DoroSettings.wgui[:logfile]
+          start_wgui
+        when 'bfm'
+          STDOUT.reopen DoroSettings.env[:logfile]
+          STDERR.reopen DoroSettings.env[:logfile]
+          DorothyFetcher.loader(@selected_sources, true)
+
+        when 'analyser'
+          puts "[" + "+".red + "] " + "[#{dmodule.upcase}]".yellow + " Logging at #{DoroSettings.env[:logfile]}" if DEBUG
+
+          STDOUT.reopen DoroSettings.env[:logfile]
+          STDERR.reopen DoroSettings.env[:logfile]
+          Dorothy.start(true)
+
+        when 'dem'
+          puts "[" + "+".red + "] " + "[#{dmodule.upcase}]".yellow + " Logging at #{DoroSettings.env[:logfile_parser]}"  if DEBUG
+
+          STDOUT.reopen DoroSettings.env[:logfile_parser]
+          STDERR.reopen DoroSettings.env[:logfile_parser]
+          DoroParser.start(true)
+      end
+    end
+
+
+  end
+end
+
+
 
 
 opts = Trollop.options do
@@ -27,24 +83,31 @@ opts = Trollop.options do
 
 
 	Usage:
-  dorothy_start [options]
+  dorothy2 [options]
 	where [options] are:
   EOS
 
   opt :Version, "Print the current version."
   opt :verbose, "Enable verbose mode"
   opt :infoflow, "Print the analysis flow"
-  opt :baseline, "Create a new process baseline"
+  opt :baseline, "Create a new process baseline", :type => :string
   opt :source, "Choose a source (from the ones defined in etc/sources.yml)", :type => :string
-  opt :daemon, "Stay in the backround, by constantly pooling datasources"
+  opt :CreateSource, "Create new source file"
+  opt :daemon, "(start|stop) Execute/kill the selected module (-W, -B, -A) in backround. If no modules are specified, it will exec/kill all of them.", :type => :string
+  opt :debug, "Add extensive log trails"
   opt :manual, "Start everything, copy the file, and wait for me."
   opt :SandboxUpdate, "Update Dorothive with the new Sandbox file"
   opt :DorothiveInit, "(RE)Install the Dorothy Database (Dorothive)", :type => :string
+  opt :queue, "Show the analysis queue"
+  opt :Analyser, "Execute only the Analyser Module (will analalyse only the current queue)"
+  opt :BFM, "Execute only the Binary Fetcher Module (BFM)"
+  opt :DEM, "Execute only the network Data Extation Module (DEM) aka doroParser"
+  opt :WebGUI, "Execute the WebGUI Module (WGUI)"
+
 
 end
 
-if opts[:infoflow]
-  puts "
+print_proc = "
 	The Dorothy Malware Analysis Framework 2.0
 	---------------Execution Flow-------------
 	#0) Fetch new malwares
@@ -63,6 +126,8 @@ if opts[:infoflow]
 	------------------------------------------
 "
 
+if opts[:infoflow]
+  puts print_proc
   exit(0)
 end
 
@@ -76,7 +141,7 @@ puts "
    ####################################################
    ##                                                ##
    ##  The Dorothy Malware Analysis Framework 2.0    ##
-   ##                                                ##
+   ##          marco.riccardi@honeynet.it            ##
    ####################################################
 
 "
@@ -84,13 +149,12 @@ puts "
 #VARS
 HOME = File.expand_path("..",File.dirname(__FILE__))
 VERBOSE = (opts[:verbose] ? true : false)
-daemon = (opts[:daemon] ? true : false)
 MANUAL =  (opts[:manual] ? true : false)
+DEBUG = (opts[:debug] ? true : false)
 
-if MANUAL && daemon
-  "[Dorothy]".yellow + " Manual and Deamon modes can't be executed together"
-  exit(1)
-end
+
+
+modules2daemonise = []
 
 
 #DEFAULT CONF FILES
@@ -102,41 +166,93 @@ conf = "#{File.expand_path("~")}/.dorothy.yml"
 #LOAD ENV
 if Util.exists?(conf)
   DoroSettings.load!(conf)
-  else
+else
   DoroConfig.create
-  exit(0)
-  end
-
-
-#LOAD EXTENSION MGT FILE
-EXTENSIONS=YAML.load_file("#{DoroSettings.env[:home]}/etc/extensions.yml")
-
-
-
-#Logging
-logout = (daemon ? DoroSettings.env[:logfile] : STDOUT)
-LOGGER = DoroLogger.new(logout, DoroSettings.env[:logage])
-LOGGER.sev_threshold = DoroSettings.env[:loglevel]
-
-
-if opts[:baseline]
-  puts "[" + "+".red + "] " +  "[DOROTHY]".yellow + "Creating a new process baseline."
-  Dorothy.run_baseline
-  puts "[" + "+".red + "] " +  "[WARNING]".red + "Baseline run finished."
   exit(0)
 end
 
 
 
 home = DoroSettings.env[:home]
+sfile = home + '/etc/sources.yml'
+sboxfile = home + '/etc/sandboxes.yml'
+profiles = home + '/etc/profiles.yml'
+
+
+case opts[:daemon]
+  when "start" then
+    if MANUAL
+      "[Dorothy]".yellow + " Manual and Deamon modes can't be executed together"
+      exit(1)
+    end
+
+    daemon = true
+  when "stop" then
+
+    #TODO the following two line sure can be avoided somehow...
+    LOGGER = DoroLogger.new(DoroSettings.env[:logfile], DoroSettings.env[:logage])
+    LOGGER.sev_threshold = DoroSettings.env[:loglevel]
+
+    modules2stop = []
+
+    if opts[:BFM]
+      modules2stop.push 'bfm'
+
+    elsif  opts[:Analyser]
+      modules2stop.push 'analyser'
+
+    elsif opts[:WebGUI]
+      modules2stop.push 'webgui'
+
+    elsif opts[:DEM]
+      modules2stop.push 'dem'
+
+    end
+
+    #if not specified, close all of them
+    modules2stop = %w(bfm analyser webgui dem) if modules2stop.empty?
+
+    modules2stop.each do |dmodule|
+      Util.stop_process(dmodule)
+    end
+
+    exit(0)
+
+  else
+    daemon = false
+end
+
+
+#Logging
+if daemon
+  logout =  DoroSettings.env[:logfile]
+  logout2=   DoroSettings.env[:logfile_parser]
+else
+  logout = logout2 = STDOUT
+end
+
+LOGGER = DoroLogger.new(logout, DoroSettings.env[:logage])
+LOGGER_PARSER = DoroLogger.new(logout2, DoroSettings.env[:logage])
+LOGGER.sev_threshold = LOGGER_PARSER.sev_threshold = DoroSettings.env[:loglevel]
+
+
+
 #check homefolder
 unless Util.exists?(home)
   DoroConfig.init_home(home)
 end
 
-sfile = home + '/etc/sources.yml'
-sboxfile = home + '/etc/sandboxes.yml'
-baseline_procs = home + '/etc/baseline_processes.yml'
+
+if opts[:baseline]
+  profile =  Util.load_profile(opts[:baseline])
+  exit(1) unless profile
+  puts "[" + "+".red + "] " +  "[Analyser]".yellow + " Creating a new process baseline."
+  Dorothy.run_baseline(profile)
+  puts "[" + "+".red + "] " +  "[Analyser]".yellow + " Baseline run finished."
+  exit(0)
+end
+
+
 
 if opts[:DorothiveInit]
   Util.init_db(opts[:DorothiveInit])
@@ -168,34 +284,41 @@ if opts[:SandboxUpdate]
   exit(0)
 end
 
-if Util.exists?(sfile)
-  sources = YAML.load_file(sfile)
-  #check if all the source directories exist
-  sources.keys.each do |s|
-    unless Util.exists?("#{sources[s]["localdir"]}")
-      LOGGER.warn "INIT", "Warning, the source's localdir #{s} doesn't exist yet, I'm going to create it"
-      Dir.mkdir("#{sources[s]["localdir"]}")
-    end
-  end
-else
-  puts "[" + "+".red + "] " +  "[WARNING]".red + " A source file doesn't exist, please crate one into #{home}/etc. See the example file in #{HOME}/etc/sources.yml.example"
+if opts[:CreateSource]
+  puts "[" + "+".red + "] " +  "[Dorothy]".yellow + " Creating a new binary source file"
+  DoroConfig.create_sources(sfile)
+  puts "[" + "+".red + "] " +  "[Dorothy]".yellow + " Done."
   exit(0)
 end
 
+if opts[:queue]
+  db.analysis_queue_view
+  exit(0)
+end
+
+
+#check if Source file exists
+unless Util.exists?(sfile)
+  puts "[" + "+".red + "] " +  "[WARNING]".red + " A source file doesn't exist. Please fill the following info in order to create one now."
+  DoroConfig.create_sources(sfile)
+  puts "[" + "+".red + "] " +  "[WARNING]".red + " A source file has been created, please restart dorothy!"
+end
+
+#check if Sandbox file exists
 unless Util.exists?(sboxfile)
   puts "[" + "+".red + "] " +  "[WARNING]".red + " There is no sandbox configured yet. Please do it now."
   DoroConfig.create_sandbox(sboxfile)
   DoroConfig.init_sandbox(sboxfile)
 end
 
-unless Util.exists?(baseline_procs)
-  puts "[" + "+".red + "] " +  "[WARNING]".red + " There is no process-baseline file yet, Dorothy is going to create one."
-  Dorothy.run_baseline
-  puts "[" + "+".red + "] " +  "[WARNING]".red + " Baseline run finished."
-  exit(0)
-end
+#check if Profile file exists
+unless Util.exists?(profiles)
+  puts "[" + "+".red + "] " +  "[WARNING]".red + " There is no profiles configured yet. A default one is being created for you."
 
-BASELINE_PROCS = YAML.load_file(baseline_procs)
+  #We use the first sandbox as default
+  firts_sandbox =  YAML.load_file(sboxfile).first[1]
+  DoroConfig.create_profiles(profiles, firts_sandbox, DoroSettings.virustotal[:vtapikey].empty?)
+end
 
 #Check DB sandbox data
 if db.table_empty?("sandboxes")
@@ -203,18 +326,143 @@ if db.table_empty?("sandboxes")
   DoroConfig.init_sandbox(sboxfile)
 end
 
-if opts[:source] && !sources.key?(opts[:source])
-  puts "[" + "+".red + "] " +  "[WARNING]".red + " The selected source is not yet configured.\nThe available sources are: "
-  puts "[" + "+".red + "] " +  sources.keys
-  exit(0)
+#Check if a baseline is present for every profile specified
+YAML.load_file(profiles).each_key do |profile|
+  profile_vars =  Util.load_profile(profile)
+
+  baseline_file = "#{DoroSettings.env[:home]}/etc/#{profile_vars[0]}_baseline_procs.yml"
+
+  unless Util.exists?(baseline_file)
+    puts "[" + "+".red + "] " +  "[WARNING]".red + " There is no process-baseline file for the #{profile} profile. Dorothy is going to create one now."
+    Dorothy.run_baseline(profile_vars)
+    puts "[" + "+".red + "] " +  "[WARNING]".red + " Baseline run finished."
+    exit(0)
+  end
+
+end
+
+
+sources = YAML.load_file(sfile)
+
+#check if Sources dir exist
+sources.keys.each do |s|
+  unless Util.exists?("#{sources[s]["localdir"]}")
+    LOGGER.warn "INIT", "Warning, the source's localdir #{s} (#{sources[s]["localdir"]}) doesn't exist yet, I'm going to create it right now.."
+    Dir.mkdir("#{sources[s]["localdir"]}")
+    LOGGER.debug "INIT", "Source's localdir #{s} created."
+  end
+end
+
+#CHECK CONF CHANGES
+%w(sources.yml sandboxes.yml).each do |f|
+  full_p = DoroSettings.env[:home] + '/etc/' + f
+  c_md5 =  Digest::MD5.hexdigest(File.read(full_p))
+  o_md5 = db.find_last_conf_chksum(f)
+  if o_md5.nil?
+    puts "#{f} not presend in the database, adding"
+    db.insert("cfg_chk", ['default', f, c_md5, Util.get_time])
+    db.check_sources_modifications(sources) if f == "sources.yml"
+  elsif c_md5 != o_md5
+    puts "The version of #{f} present into the database has changed, fixing this accordingly"
+    db.insert("cfg_chk", ['default', f, c_md5, Util.get_time])
+    db.check_sources_modifications(sources) if f == "sources.yml"
+    DoroConfig.init_sandbox(sboxfile) if f == "sandboxes.yml"
+  end
 end
 
 db.close
 
+
+
+
+if opts[:source]
+  unless sources.key?(opts[:source])
+    puts "[" + "+".red + "] " +  "[WARNING]".red + " The selected source is not yet configured. The available sources are: "
+    sources.keys.each do |k|
+      puts "[" + "-".red + "] " +  k
+    end
+    exit(0)
+  end
+  @selected_sources = sources.select {|k,v| k == opts[:source]}
+end
+
+if opts[:BFM]
+  if daemon
+    modules2daemonise.push('bfm')
+  else
+    @selected_sources ||= sources
+    DorothyFetcher.loader(@selected_sources)
+    exit(0)
+  end
+end
+
+if opts[:WebGUI]
+  if daemon
+    modules2daemonise.push('webgui')
+  else
+    require File.dirname(__FILE__) + '/../lib/doroGUI'
+    puts "[" + "+".red + "] " +  "[WGUI]".yellow + "Starting WebGUI at http://#{DoroSettings.wgui[:host]}:#{DoroSettings.wgui[:port]}"
+    start_wgui
+    exit(0)
+  end
+end
+
+
+if opts[:Analyser]
+  if daemon
+    modules2daemonise.push('analyser')
+  else
+    puts "[" + "+".red + "] " +  "[Analyser]".yellow + "Starting the analyser."
+    Dorothy.start(daemon)
+    exit(0)
+  end
+end
+
+if opts[:DEM]
+  #check pcapr
+  if DoroSettings.pcapr[:local]=="true"
+    if system "sh -c 'type startpcapr > /dev/null 2>&1'"
+      pcapr_conf = "#{File.expand_path("~")}/.pcapr_local/config"
+      unless Util.exists?(pcapr_conf)
+        puts "[WARNING]".red + " Pcapr conf not found at #{File.expand_path("~")}/.pcapr_local/config "
+        puts "[WARNING]".red + " Although you have configured Dorothy in order to look for a *local* Pcapr instance,it seems that it is not configured yet,so please run \"startpcapr\" and configure it."
+        exit(1)
+      end
+    else
+      puts "[WARNING]".red + " Although you have configured Dorothy in order to look for a *local* Pcapr instance, it seems *NOT INSTALLED* in your system.\n\t Please install it by typing \"sudo gem install pcapr-local\. Then set Pcapr to scan #{DoroSettings.env[:analysis_dir]}"
+      exit(1)
+    end
+  end
+
+  if daemon
+    modules2daemonise.push('dem')
+  else
+    puts "[" + "+".red + "] " +  "[DEM]".yellow + "Starting the network Data Extration Module (DEM)."
+    DoroParser.start(daemon)
+    exit(0)
+  end
+end
+
+
+
 begin
-  Dorothy.start sources[opts[:source]], daemon
+
+  @selected_sources ||= sources
+
+  if daemon
+    modules2daemonise = %w(webgui bfm analyser dem) if modules2daemonise.empty?
+
+    modules2daemonise.each do |dmodule|
+      doro_forker(dmodule)
+    end
+
+  else
+    DorothyFetcher.loader(@selected_sources, daemon)
+    Dorothy.start(daemon)
+  end
+
 rescue SignalException
-   Dorothy.stop_running_analyses
+  LOGGER.warn "Analyser", "SIGINT".red + " Catched, exiting gracefully."
 rescue => e
   puts "[" + "+".red + "] " +  "[Dorothy]".yellow + " An error occurred: \n".red + e.inspect
   puts "[" + "+".red + "] " +  "[Dorothy]".yellow + " For more information check the logfile \n" + e.inspect if daemon
@@ -222,4 +470,3 @@ rescue => e
   LOGGER.debug "Dorothy", "#{e.inspect} --BACKTRACE:  #{e.backtrace}"
   LOGGER.info "Dorothy", "Dorothy has been stopped"
 end
-

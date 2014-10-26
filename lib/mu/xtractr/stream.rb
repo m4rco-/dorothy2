@@ -129,4 +129,4 @@ end
 end # Xtractr
 end # Mu
 
-require 'mu/xtractr/stream/http'
+require File.dirname(__FILE__) + '/stream/http'

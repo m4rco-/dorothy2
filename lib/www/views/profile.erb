@@ -1,0 +1,49 @@
+<h1>Profile Resume</h1>
+
+<table border="1" align="center">
+
+  <tr>
+    <td>Name:</td>
+    <td><%= @profile[0] %></td>
+  </tr>
+
+  <tr>
+    <td>Operating System:</td>
+    <td><%= @profile[1]['OS']['type'] + ' ' + @profile[1]['OS']['version'] + ' ' + @profile[1]['OS']['lang'] %></td>
+  </tr>
+
+  <tr>
+    <td>Sandbox Revert timeout:</td>
+    <td>
+      <%= @profile[1]['sleeptime'] %>
+    </td>
+  </tr>
+
+
+  <tr>
+    <td>Number of screenshots:</td>
+    <td>
+      <%= @profile[1]['screenshots']['number'] %>
+    </td>
+  </tr>
+
+  <tr>
+    <td>Delay first screenshots:</td>
+    <td>
+      <%= @profile[1]['screenshots']['delay_first'] %>
+    </td>
+  </tr>
+
+
+  <tr>
+    <td>Delay between every screenshot:</td>
+    <td>
+      <%= @profile[1]['screenshots']['delay_inbetween'] %>
+    </td>
+  </tr>
+
+
+</table>
+
+
+

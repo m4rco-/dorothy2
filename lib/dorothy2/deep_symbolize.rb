@@ -1,3 +1,4 @@
+# From https://gist.github.com/morhekil/998709
 # Symbolizes all of hash's keys and subkeys.
 # Also allows for custom pre-processing of keys (e.g. downcasing, etc)
 # if the block is given:
@@ -12,10 +13,6 @@
 # 2) myhash.extend DeepSymbolizable
 
 module DeepSymbolizable
-
-  class Hash
-    include DeepSymbolizable
-  end
 
   def deep_symbolize(&block)
     method = self.class.to_s.downcase.to_sym
@@ -63,5 +60,3 @@ module DeepSymbolizable
   end
 
 end
-
-class Hash; include DeepSymbolizable; end

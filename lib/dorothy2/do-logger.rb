@@ -20,7 +20,7 @@ class DoroLogger < Logger
   end
 
   def debug(progname, text, &block)
-    add(DEBUG, text, progname, &block)
+    add(DEBUG, text, progname, &block) if VERBOSE
   end
 
   def warn(progname, text, &block)

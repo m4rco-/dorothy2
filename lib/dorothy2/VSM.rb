@@ -106,7 +106,8 @@ module Dorothy
         @pp2
       end
 
-      def get_new_procs(current_procs, original_procs=BASELINE_PROCS)
+      def get_new_procs(current_procs, original_procs_file)
+        original_procs = YAML.load_file(original_procs_file)
         @new_procs = Hash.new
         current_procs.each_key {|pid|
           @new_procs.merge!(Hash[pid, current_procs[pid]]) unless original_procs.has_key?(pid)

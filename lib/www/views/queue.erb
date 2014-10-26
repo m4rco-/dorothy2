@@ -7,7 +7,7 @@
     <th>Filename</th>
     <th>Source</th>
     <th>Priority</th>
-    <th>User</th>
+    <th>Profile</th>
     <th>Status</th>
     <th>Analysis ID</th>
   </tr>
@@ -17,12 +17,12 @@
         <td><%= q.id %></td>
         <td><%= q.date %></td>
         <td><%= q.filename %></td>
-        <td><%= q.source %></td>
+        <td><%= @sources.where(:id => q.source).first.sname %></td>
         <td><%= q.priority %></td>
-        <td><%= q.user %></td>
+        <td><a href="javascript:window.open('/profile/<%= q.profile %>','Profile resume','width=600,height=400')"><%= q.profile %></a></td>
         <td><%= q.status %></td>
-
         <td><a href="/resume/<%= analysed_id %>"><%= analysed_id %></a></td>
+
       </tr>
   <% end %>
 </table>

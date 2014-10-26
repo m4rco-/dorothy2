@@ -8,6 +8,7 @@
     <th>SHA256</th>
     <th>Source</th>
     <th>Sandbox</th>
+    <th>Source_email</th>
   </tr>
     <% @analyses.each do |anal| %>
       <tr>
@@ -17,6 +18,11 @@
         <td><%= anal.sample %></td>
         <td><%= @queue.where(:id => anal.queue_id).first.source %></td>
         <td><%= anal.sandbox %></td>
+        <td>
+          <%  mailid = @sightings.where(:id => @queue.where( :id => anal.queue_id).first.sighting).first.src_email%>
+          <a href="javascript:window.open('/email/view/<%= mailid %>','Email resume','width=600,height=400')"><%= mailid %></a>
+        </td>
       </tr>
     <% end %>
 </table>
+

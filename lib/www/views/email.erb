@@ -1,0 +1,63 @@
+<h1>Email Resume</h1>
+
+<table border="1" align="center">
+
+  <tr>
+    <td>Date:</td>
+    <td><%= @email.date %></td>
+  </tr>
+
+  <tr>
+    <td>From:</td>
+    <td><%= @email.from %></td>
+  </tr>
+
+  <tr>
+    <td>To:</td>
+    <td>
+    <% @receivers.where(:mail_field => 'to').each do |r| %>
+    <%= r.address %>
+    <% end %>
+    </td>
+  </tr>
+
+
+  <tr>
+    <td>Cc:</td>
+    <td>
+    <% @receivers.where(:mail_field => 'cc').each do |r| %>
+        <%= r.address %>
+    <% end %>
+    </td>
+  </tr>
+
+  <tr>
+    <td>Subject:</td>
+    <td><%= @email.subject %></td>
+  </tr>
+
+  <tr>
+    <td>Body SHA2:</td>
+    <td><%= @email.body_sha256 %></td>
+  </tr>
+
+  <tr>
+    <td>Message ID:</td>
+    <td><%= @email.message_id %></td>
+  </tr>
+
+  <tr>
+    <td>Raw email</td>
+    <td>[<a href="/email/download/<%= @email.id %>">Download</a>]</td>
+  </tr>
+
+  <% unless @email.forwarded_by.nil? %>
+  <tr>
+    <td>This email was included in</td>
+    <td><a href="javascript:window.open('/email/view/<%= @email.forwarded_by %>','Email resume','width=600,height=400')"><%= @email.forwarded_by %></a></td>
+  </tr>
+  <% end %>
+</table>
+
+
+

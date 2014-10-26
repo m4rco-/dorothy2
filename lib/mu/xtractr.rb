@@ -12,18 +12,18 @@
 # * http://www.mudynamics.com
 # * http://labs.mudynamics.com
 
-require 'mu/xtractr/about'
-require 'mu/xtractr/content'
-require 'mu/xtractr/field'
-require 'mu/xtractr/flow'
-require 'mu/xtractr/flows'
+require File.dirname(__FILE__) + '/xtractr/about'
+require File.dirname(__FILE__) + '/xtractr/content'
+require File.dirname(__FILE__) + '/xtractr/field'
+require File.dirname(__FILE__) + '/xtractr/flow'
+require File.dirname(__FILE__) + '/xtractr/flows'
 require File.dirname(__FILE__) + '/xtractr/host'   #overrides the gem one with the local (fixed for 1.9.3)
-require 'mu/xtractr/packet'
-require 'mu/xtractr/packets'
-require 'mu/xtractr/service'
-require 'mu/xtractr/stream'
-require 'mu/xtractr/term'
-require 'mu/xtractr/views'
+require File.dirname(__FILE__) + '/xtractr/packet'
+require File.dirname(__FILE__) + '/xtractr/packets'
+require File.dirname(__FILE__) + '/xtractr/service'
+require File.dirname(__FILE__) + '/xtractr/stream'
+require File.dirname(__FILE__) + '/xtractr/term'
+require File.dirname(__FILE__) + '/xtractr/views'
 
 module Mu # :nodoc:
 # = http://www.pcapr.net/static/image/favicon.png Mu::Xtractr

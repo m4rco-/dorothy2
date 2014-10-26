@@ -7,24 +7,11 @@ module Dorothy
   class DoroGUI < Sinatra::Base
     register Sinatra::Namespace
 
-
-    conf = "#{File.expand_path("~")}/.dorothy.yml"
-
-    #LOAD ENV
-    if Util.exists?(conf)
-      DoroSettings.load!(conf)
-    else
-      DoroConfig.create
-      exit(0)
-    end
-
-#    configure :production, :development do
-      enable :logging, :dump_errors
-      file = File.new(DoroSettings.wgui[:logfile], 'a+')
-      file.sync = true
-      use Rack::CommonLogger, file
-      before { env['rack.errors'] = file  }
-
+    enable :logging, :dump_errors
+    file = File.new(DoroSettings.wgui[:logfile], 'a+')
+    file.sync = true
+    use Rack::CommonLogger, file
+    before { env['rack.errors'] = file  }
 
     set :app_file, __FILE__
     root = File.expand_path(File.dirname(__FILE__))
@@ -68,6 +55,22 @@ module Dorothy
       self.table_name = "traffic_dumps"
     end
 
+    class Sources < ActiveRecord::Base
+      self.table_name = "sources"
+    end
+
+    class Emails < ActiveRecord::Base
+      self.table_name = "emails"
+    end
+
+    class Receivers < ActiveRecord::Base
+      self.table_name = "email_receivers"
+    end
+
+    class Sightings < ActiveRecord::Base
+      self.table_name = "sightings"
+    end
+
     class SystemProcs < ActiveRecord::Base
       self.table_name = "sys_procs"
     end
@@ -85,21 +88,98 @@ module Dorothy
       @analyses = Analyses.all
       @samples  = Samples.all
       @queue = AnalysisQueue.all
+      @sightings = Sightings.all
+      @emails = Emails.all
+
+
+
       erb :analyses
     end
+
+
 
     get '/queue' do
       @title = "Queue Status"
       @queue = AnalysisQueue.all.order(id: :asc, priority: :desc)
+      @sources = Sources.all
       @analyses = Analyses.all
+      @emails = Emails.all
       erb :queue
     end
 
-    get '/configure' do
-      @title = "Configure"
 
-      erb :configure
+    get '/resume/:analid' do
+      @title = "Sample Analysis Resume"
+      @analysis_dir = DoroSettings.env[:analysis_dir]
+      @analid = params[:analid]
+      @sample = Samples.where(:sha256 => Analyses.where(:id => @analid).first.sample).first
+      @sys_procs = SystemProcs.where(:analysis_id => params[:analid])
+      @malware = Malwares.where(:bin => Analyses.where(:id => @analid).first.sample).first
+      @sophos = @malware.nil? ? nil : AvSigns.where(:id => @malware.id).where(:av_name => 'Sophos').first
+
+      @mailid = Sightings.where(:id => AnalysisQueue.where( :id => Analyses.where(:id => @analid).first.queue_id).first.sighting).first.src_email
+
+
+
+      @net_dumps = TrafficDumps.where(:sha256 => Analyses.where(:id => @analid).first.traffic_dump)
+      @flows= Flows.where(:traffic_dump => Analyses.where(:id => @analid).first.traffic_dump)
+
+      @imgs = []
+      Dir[DoroSettings.env[:analysis_dir] + "/#{@analid}/screens/*.png"].each  {|file| @imgs.push(File.basename(file))  }
+
+      erb :resume
     end
+
+    get '/screens/:analid/:name' do
+      full_path = DoroSettings.env[:analysis_dir] + "/" + params[:analid] + "/screens/" + params[:name]
+      send_file full_path.strip, :filename => params[:name].strip, :disposition => 'inline'
+    end
+
+
+    get '/profile/:profile' do
+      @profile = Util.load_profile(params[:profile])
+
+      erb :profile
+    end
+
+
+    get '/upload' do
+      @sandboxes = Sandboxes.all
+      @profiles = YAML.load_file(DoroSettings.env[:home] + '/etc/profiles.yml')
+
+      erb :upload
+    end
+
+    post '/upload' do
+      localpath = sources["webgui"]["localdir"] + "/#{params[:uploaded_data][:filename]}"
+      FileUtils.mv(params[:uploaded_data][:tempfile].path, localpath) unless params[:uploaded_data].nil?
+      id = QueueManager.add(localpath, 'webgui', params[:profile], params[:priority])
+
+      #entry = AnalysisQueue.create(date: get_time, binary: localpath, filename: filename, source: "webgui", priority: params[:priority], profile: params[:OS], user: "webuser")
+      #entry.save
+      erb "Upload Complete. Prio #{params[:priority]} - OS #{params[:OS]} - Scheduled with Queue ID #{id}"
+    end
+
+
+
+    namespace '/email' do
+      get '/view/:mail_id' do
+        @email = Emails.where(:id => params[:mail_id]).first
+        @receivers = Receivers.where(:email_id => params[:mail_id])
+        erb :email
+      end
+
+      get '/download/:mail_id' do
+        email = Emails.where(:id => params[:mail_id]).first
+
+        content_type 'Application/octet-stream'
+        attachment( "Message_#{email.id}" + '.eml')
+        PG::Connection.unescape_bytea(email.data)
+      end
+
+    end
+
+
 
     namespace '/samples/' do
 
@@ -127,13 +207,6 @@ module Dorothy
     end
 
 
-
-    get '/sys_procs/:analid' do
-      @title = "System Processes Spowned"
-      @sys_procs = SystemProcs.where(:analysis_id => params[:analid])
-      erb :sys_procs
-    end
-
     namespace '/net' do
 
       namespace '/:dump_sha1' do
@@ -146,64 +219,9 @@ module Dorothy
           erb :flows
         end
 
-
-        get '/flow/:flow_id' do
-          @net_dumps = TrafficDumps.where(:sha256 => params[:dump_sha1])
-          @pcapr = Doroxtractr.create "http://#{DoroSettings.pcapr[:host]}:#{DoroSettings.pcapr[:port]}/pcaps/1/pcap/#{@net_dumps.first.pcapr_id}"
-          @flow_cont = @pcapr.flowcontent(params[:flow_id])
-          @flow_pkts = @pcapr.flows("#{params[:flow_id]}").first
-          @cont = ""
-          @pcapr.flows("#{params[:flow_id]}").first.each  do |pkt|
-            @cont << pkt.payload
-          end
-
-
-          erb :flows_pcapr
-        end
-
       end
     end
 
-
-    get '/resume/:analid' do
-      @title = "Sample Analysis Resume"
-      @analysis_dir = DoroSettings.env[:analysis_dir]
-      @analid = params[:analid]
-      @sample = Samples.where(:sha256 => Analyses.where(:id => @analid).first.sample).first
-      @sys_procs = SystemProcs.where(:analysis_id => params[:analid])
-      @malware = Malwares.where(:bin => Analyses.where(:id => @analid).first.sample).first
-      @sophos = @malware.nil? ? nil : AvSigns.where(:id => @malware.id).where(:av_name => 'Sophos').first
-
-      @net_dumps = TrafficDumps.where(:sha256 => Analyses.where(:id => @analid).first.traffic_dump)
-      @flows= Flows.where(:traffic_dump => Analyses.where(:id => @analid).first.traffic_dump)
-
-      @imgs = []
-      Dir[DoroSettings.env[:analysis_dir] + "/#{@analid}/screens/*.png"].each  {|file| @imgs.push(File.basename(file))  }
-
-      erb :resume
-    end
-
-    get '/screens/:analid/:name' do
-      full_path = DoroSettings.env[:analysis_dir] + "/" + params[:analid] + "/screens/" + params[:name]
-      send_file full_path.strip, :filename => params[:name].strip, :disposition => 'inline'
-    end
-
-    get '/upload' do
-      @sandboxes = Sandboxes.all
-      erb :upload
-    end
-
-    post '/upload' do
-      localpath = sources["webgui"]["localdir"] + "/#{params[:uploaded_data][:filename]}"
-      FileUtils.mv(params[:uploaded_data][:tempfile].path, localpath) unless params[:uploaded_data].nil?
-      id = QueueManager.add(localpath,5, "webgui", params[:OS], params[:priority])
-
-
-      #entry = AnalysisQueue.create(date: get_time, binary: localpath, filename: filename, source: "webgui", priority: params[:priority], profile: params[:OS], user: "webuser")
-      #entry.save
-      #Date	Filename	Source	Priority	User	Analysed?
-      erb "Upload Complete. Prio #{params[:priority]} - OS #{params[:OS]} - Scheduled with Queue ID #{id}"
-    end
 
     after do
       ActiveRecord::Base.connection.close

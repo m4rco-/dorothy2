@@ -123,21 +123,18 @@
       <h2>Select a file</h2>
       <form action="upload" method="post" enctype="multipart/form-data" accept-charset="utf-8">
         <input type="file" name="uploaded_data" id="uploaded_data">
-        <h2>Select a Sandbox</h2>
-        <select class="form-control" name="OS">
 
-          <% @sandboxes.each do |sb| %>
+        <h2>Select an Analysis Profile</h2>
+                <select class="form-control" name="profile">
+                <% @profiles.each do |profile| %>
+                    <option><%= profile[0] %></option>
 
-              <option><%= sb.hostname %> : <%= sb.OS %> <%= sb.version %> <%= sb.os_lang %> </option>
-
-
-          <% end %>
-
-        </select>
+                <% end %>
+            </select>
 
 
-        <h2>Priority</h2>
-        <select class="form-control" name="priority">
+          <h2>Priority</h2>
+             <select class="form-control" name="priority">
           <option>1</option>
           <option>2</option>
           <option>3</option>

@@ -19,6 +19,7 @@ module Dorothy
         Dir.mkdir("#{home}/opt")
         Dir.mkdir("#{home}/opt/bins")
         Dir.mkdir("#{home}/opt/analyzed")
+        Dir.mkdir("#{home}/opt/analyzed/bins")
       end
       unless Util.exists?("#{home}/etc")
         Dir.mkdir("#{home}/etc")
@@ -50,6 +51,8 @@ module Dorothy
         conf["virustotal"] = Hash.new
         conf["esx"] = Hash.new
         conf["pcapr"] = Hash.new
+        conf["wgui"] = Hash.new
+        conf["bfm"] = Hash.new
 
 
         ################################################
@@ -64,14 +67,15 @@ module Dorothy
 
         puts "The Dorothy home directory is #{home}"
 
-        conf["env"]["pidfile"] = "#{home}/var/dorothy.pid"
+        conf["env"]["pidfiles"] = "#{home}/var"
         conf["env"]["pidfile_parser"] = "#{home}/var/doroParser.pid"
         conf["env"]["analysis_dir"] = "#{home}/opt/analyzed"
+        conf["env"]["bins_repository"] = "#{home}/opt/analyzed/bins"
         conf["env"]["geoip"] = "#{home}/etc/geo/GeoLiteCity.dat"
         conf["env"]["geoasn"] = "#{home}/etc/geo/GeoIPASNum.dat"
         conf["env"]["geoisp"] = "#{home}/etc/geo/GeoIPISP.dat"
 
-        conf["env"]["dtimeout"] = 3600
+        conf["env"]["sleeptime"] = 5
 
         conf["env"]["logfile"] = "#{home}/var/log/dorothy.log"
         conf["env"]["logfile_parser"] = "#{home}/var/log/parser.log"
@@ -120,19 +124,7 @@ module Dorothy
 
         puts "\n######### [" + " Sandbox configuration settings ".red + "] #########"
 
-        puts "Insert the time (seconds) that the Sandbox should be run before it's reverted [60]"
-        conf["sandbox"]["sleeptime"] = (t = gets.chop).empty? ? 60 : t
 
-        puts "Insert how many screenshots do you want to take [1]"
-        conf["sandbox"]["num_screenshots"] = (t = gets.chop).empty? ? 1 : t.to_i
-
-        if conf["sandbox"]["num_screenshots"] > 1
-          puts "Insert the time interval (seconds) between each screenshot [5] "
-          conf["sandbox"]["screen2time"] = (t = gets.chop).empty? ? 5 : t
-        end
-
-        puts "After how many seconds do you want to take the first screenshot? [1]"
-        conf["sandbox"]["screen1time"] = (t = gets.chop).empty? ? 1 : t
 
         puts "Which is the sandox's network? [10.10.10.0/0]"
         conf["sandbox"]["network"] = (t = gets.chop).empty? ? "10.10.10.0/0" : t
@@ -158,7 +150,7 @@ module Dorothy
         conf["nam"]["pass"] = gets.chop
 
         puts "SSH Port [22] :"
-        conf["nam"]["port"] = (t = gets.chop).empty? ? 22 : t
+        conf["nam"]["port"] = (t = gets.chop).empty? ? 22 : t.to_i
 
         puts "Folder where to store PCAP files [/home/#{conf["nam"]["user"]}/pcaps]"
         conf["nam"]["pcaphome"] = (t = gets.chop).empty? ? "/home/#{conf["nam"]["user"]}/pcaps" : t
@@ -183,7 +175,30 @@ module Dorothy
         end
 
         puts "Pcapr HTTP Port [8080]:"
-        conf["pcapr"]["port"] = (t = gets.chop).empty? ? 8080 : t
+        conf["pcapr"]["port"] = (t = gets.chop).empty? ? 8080 : t.to_i
+
+
+        ######################################################
+        ###WebGUI
+        ######################################################
+        puts "\n######### [" + " Web GUI configuration ".red + "] #########"
+
+        puts "IP Address used for listening. Use 0.0.0.0 to allow remote connections [localhost]:"
+        conf["wgui"]["host"] = (t = gets.chop).empty? ? 'localhost' : t.to_s
+
+        puts "TCP port [3435]:"
+        conf["wgui"]["port"] = (t = gets.chop).empty? ? 3435 : t.to_i
+
+        conf["wgui"]["environment"] = "production"
+        conf["wgui"]["logfile"] = "#{home}/var/log/webgui.log"
+
+        ######################################################
+        ###Binaries Fetcher Module
+        ######################################################
+        puts "\n######### [" + " Binaries Fetcher Module ".red + "] #########"
+
+        puts "How often the BFM should pool all the resources (sec)? [60]"
+        conf["bfm"]["sleeptime"] = (t = gets.chop).empty? ? 60 : t.to_i
 
 
         ######################################################
@@ -212,8 +227,6 @@ module Dorothy
             File.open("#{File.expand_path("~")}/.dorothy.yml", 'w+') {|f| f.write(conf.to_yaml) }
             FileUtils.ln_s("#{File.expand_path("~")}/.dorothy.yml", "#{home}/etc/dorothy.yml") unless Util.exists?("#{home}/etc/dorothy.yml")
 
-            #copy the default extension file to the user-defined home
-            FileUtils.cp("#{HOME}/etc/extensions.yml", "#{home}/etc/extensions.yml")
             correct = true
             puts "Configuration file has been saved in ~/.dorothy.conf and a symlink has been created in\n#{home}/etc/dorothy.yml for an easier edit."
             puts "\n######### [" + " Now you can restart dorothy, enjoy! ".yellow + "] #########"
@@ -230,6 +243,131 @@ module Dorothy
       end
 
     end
+
+
+    def create_profiles(filename, sandbox=false, vtotal=nil)
+
+      correct = false
+      conf = Hash.new
+      if sandbox
+
+        conf['default'] = {}
+
+        conf['default']['sleeptime'] = 60
+        vtotal ? conf['default']['vtotal_query'] = true : conf['default']['vtotal_query'] = false
+
+
+        conf['default']['screenshots'] = {}
+        conf['default']['screenshots']['number'] = 2
+        conf['default']['screenshots']['delay_first'] = 1
+        conf['default']['screenshots']['delay_inbetween'] = 30
+
+
+
+        conf['default']['OS'] = {}
+        conf['default']['OS']['type'] = sandbox['os']
+        conf['default']['OS']['version'] = sandbox['version']
+        conf['default']['OS']['lang'] = sandbox['os_lang']
+
+
+
+        conf['default']['extensions'] = {}
+
+        %w(exe bat html rtf).each do |ext|
+          conf['default']['extensions'][ext] = Hash.new
+          conf['default']['extensions'][ext]['prog_name'] =  'Windows CMD.exe'
+          conf['default']['extensions'][ext]['prog_path'] =  'C:\windows\system32\cmd.exe'
+          conf['default']['extensions'][ext]['prog_args'] =  '/C'
+        end
+
+
+        File.open(filename, 'w+') {|f| f.write(conf.to_yaml) }
+        puts "Profiles have been saved in #{filename}\nYou can either modify such file directly. Enjoy!"
+
+      else
+        until correct
+
+          finished = false
+
+          until finished
+
+            puts "\n######### [" + " Profiles configuration ".red + "] #########"
+
+            puts "Please insert the unique name for this profile"
+            pname = gets.chop
+
+            conf[pname] = {}
+            conf[pname]['OS'] = {}
+            conf[pname]['screenshots'] = {}
+            conf[pname]['extensions'] = {}
+
+            puts "Please insert the information on the OS you want to associate with this profile. This info must reflect the one inserted into the sandboxes.yml file"
+            puts "OS Type (Windows|Linux) [Windows] "
+            conf[pname]["OS"]['type'] = (t = gets.chop).empty? ? 'Windows' : t
+            puts "OS Version: (e.g. XP SP3) [XP SP3]"
+            conf[pname]["OS"]['version'] = (t = gets.chop).empty? ? 'XP SP3' : t
+            puts "OS Language:  [eng]"
+            conf[pname]["OS"]['lang'] = (t = gets.chop).empty? ? 'eng' : t
+
+            puts "Sandbox parameters"
+            puts "Insert the time (seconds) that the Sandbox should be run before it's reverted [60]"
+            conf[pname]["sleeptime"] = (t = gets.chop).empty? ? 60 : t
+
+            puts "Insert how many screenshots do you want to take [1]"
+            conf[pname]['screenshots']["number"] = (t = gets.chop).empty? ? 1 : t.to_i
+
+            if conf[pname]["num_screenshots"] > 1
+              puts "Insert the time interval (seconds) between each screenshot [5] "
+              conf[pname]["screenshots"]['delay_inbetween'] = (t = gets.chop).empty? ? 5 : t.to_i
+            end
+
+            puts "After how many seconds do you want to take the first screenshot? [1]"
+            conf[pname]["screenshots"]['delay_first'] = (t = gets.chop).empty? ? 1 : t.to_i
+
+
+            puts "Enable Virus Total queries? VT API key must be in .dorothy.yml [y]"
+            t = gets.chop
+            (t.empty? || t == "y" || t == "yes") ? conf[pname]["vtotal_query"] = true : conf[pname]["vtotal_query"] = false
+
+            puts "Adding basic extensions (exe, bat, html, rtf)"
+
+            %w(exe bat html rtf).each do |ext|
+              conf[pname]['extensions'][ext] = Hash.new
+              conf[pname]['extensions'][ext]['prog_name'] =  'Windows CMD.exe'
+              conf[pname]['extensions'][ext]['prog_name'] =  'C:\windows\system32\cmd.exe'
+              conf[pname]['extensions'][ext]['prog_name'] =  '/C'
+            end
+
+            puts "Profiles configured. Want you to configure another one? [n]"
+            t = gets.chop
+
+            if t == "y" || t == "yes"
+              finished = false
+            else
+              finished = true
+            end
+
+          end
+
+          puts "Configuration finished"
+          puts "Confirm? [y]"
+          t = gets.chop
+          puts t
+
+          if t.empty? || t == "y" || t == "yes"
+            File.open(filename, 'w+') {|f| f.write(conf.to_yaml) }
+            correct = true
+            puts "Profiles have been saved in #{filename}\nYou can either modify such file directly. Enjoy!"
+          else
+            puts "Please reinsert the info"
+            correct = false
+          end
+        end
+      end
+    end
+
+
+
 
     #Creates the sandbox configuration file
     def create_sandbox(sboxfile)
@@ -305,6 +443,135 @@ module Dorothy
       end
     end
 
+
+
+    #Creates the Source configuration file
+    def create_sources(sourcesfile = DoroSettings.env[:home] + '/etc/sources.yml')
+
+      correct = false
+
+      until correct
+
+        conf = Hash.new
+
+        #Add WGUI as default source
+
+        conf['webgui'] = Hash.new
+        conf['webgui']["type"] = 'web'
+        conf['webgui']["typeid"] = 1
+        conf['webgui']["localdir"] =  DoroSettings.env[:home] + '/opt/bins/webgui'
+        conf['webgui']["priority"] = 3
+        conf['webgui']["profile"]  = 'default'
+
+        finished = false
+
+        until finished
+          puts "Please insert a unique name for the binary source you want to add"
+          sname = gets.chop
+
+          conf[sname] = Hash.new
+
+          puts "Please specify the binary source type (system|ssh|mail) [system]"
+          conf[sname]["type"] = (t = gets.chop).empty? ? "system" : t
+          puts ">" + conf[sname]["type"]
+
+          case conf[sname]["type"]
+            when "system" then
+              puts "Please specify the system folder where are located the binaries [#{DoroSettings.env[:home]}/opt/bins/#{sname}]"
+              conf[sname]["localdir"] = (t = gets.chop).empty? ? "#{DoroSettings.env[:home]}/opt/bins/#{sname}" : t
+            when "mail" then
+              puts "Please specify the IP address/hostname of the mail server (e.g. pop-mail.outlook.com)"
+              conf[sname]["address"] = gets.chop
+
+              puts "Please specify the username used for the authentication"
+              conf[sname]["username"] = gets.chop
+
+              puts "Please specify the password used for the authentication"
+              conf[sname]["password"] = gets.chop
+
+              puts "Please specify the TCP port used by the mailserver [993]"
+              conf[sname]["port"] = (t = gets.chop).empty? ? 993 : t.to_i
+              puts ">" + conf[sname]["port"].to_s
+
+              puts "Is SSL required for this mailbox (true|false)? [true]"
+              t = (gets.chop == "false" ? false : true)
+              conf[sname]["enable_ssl"] = t
+              puts ">" + conf[sname]["enable_ssl"].to_s
+
+              puts "How many emails do you want to retreive during every request? [3]"
+              conf[sname]["n_emails"] = (t = gets.chop).empty? ? 3 : t.to_i
+              puts ">" + conf[sname]["n_emails"].to_s
+
+              puts "Do you want to delete the emails from the server once downloaded? [true] (Warning, if false, Dorothy wont understand which email is new. Put false only for development/testing)"
+              t = (gets.chop == "false" ? false : true)
+              conf[sname]["delete_once_downloaded"] = t
+              puts ">" + conf[sname]["delete_once_downloaded"].to_s
+
+              puts "Please specify the system folder where the attachments will be temporaly copied into [#{DoroSettings.env[:home]}/opt/bins/#{sname}]"
+              conf[sname]["localdir"] = (t = gets.chop).empty? ? "#{DoroSettings.env[:home]}/opt/bins/#{sname}" : t
+
+            when "ssh" then
+              puts "Please specify the IP address/hostname of the remote server"
+              conf[sname]["host"] = gets.chop
+
+              puts "Please specify the ssh TCP port of the remote server [22]"
+              conf[sname]["port"] = (t = gets.chop).empty? ? 22 : t.to_i
+              puts ">" + conf[sname]["port"].to_s
+
+              puts "Please specify the username used for the authentication"
+              conf[sname]["username"] = gets.chop
+
+              puts "Please specify the password used for the authentication"
+              conf[sname]["password"] = gets.chop
+
+              puts "Please specify the remote path where the binaries are"
+              conf[sname]["remotedir"] = gets.chop
+
+              puts "Please specify the system folder where the binaries will be temporaly copied into [#{DoroSettings.env[:home]}/opt/bins/#{sname}]"
+              conf[sname]["localdir"] = (t = gets.chop).empty? ? "#{DoroSettings.env[:home]}/opt/bins/#{sname}" : t
+          end
+
+
+          puts "Please specify the priority of this source. 1 is the lowest [1]"
+          conf[sname]["priority"] = (t = gets.chop).empty? ? 1 : t.to_i
+          puts ">" + conf[sname]["priority"].to_s
+
+          puts "Please specify which analysis profile you want to associate with this source. [default]"
+          conf[sname]["profile"] = (t = gets.chop).empty? ? "default" : t
+          puts ">" + conf[sname]["profile"]
+
+
+          puts "Binary source added. Do you want to add another one? [n]"
+          t = gets.chop
+
+          if t == "y" || t == "yes"
+            finished = false
+          else
+            finished = true
+          end
+
+
+        end
+
+        puts "Configuration finished"
+        puts "Confirm? [y]"
+        t = gets.chop
+        puts t
+
+        if t.empty? || t == "y" || t == "yes"
+          File.open(sourcesfile, 'w+') {|f| f.write(conf.to_yaml) }
+          correct = true
+          puts "Configuration file has been saved in #{sourcesfile}\nYou can either modify such file directly. Enjoy!"
+        else
+          puts "Please reinsert the info"
+          correct = false
+        end
+
+      end
+    end
+
+
+
     #This method will populate the dorothive table sandboxes
     def init_sandbox(file="../etc/sandboxes.yml")
       conf = YAML.load_file(file)
@@ -312,7 +579,7 @@ module Dorothy
       db = Insertdb.new
       db.begin_t
 
-      LOGGER.warn "INIT", "Waring, the SandBox table is gonna be flushed, and updated with the new file"
+      LOGGER.warn "INIT", "Warning, the SandBox table is gonna be flushed, and updated with the new file"
       db.flush_table("sandboxes")
 
       conf.each_key do |sbox|

@@ -4,25 +4,32 @@
 
 module Dorothy
 
-class Vtotal < VirusTotal::VirusTotal
-	attr_writer :api_key
-	attr_reader :rate
-	attr_reader :filehash
-	attr_reader :scanid
-	attr_reader :family
-	attr_reader :permalink
-	attr_reader :updated
-	attr_reader :version
-	attr_reader :vendor 
-	attr_reader :detected 
-	
-	
-	def initialize()
-		@api_key = VTAPIKEY
-	end
-	
-	
-	def analyze_file(file)
+module Vtotal
+  extend self
+
+  def check_hash(hash)
+    @api_key = DoroSettings.virustotal[:vtapikey]
+
+    scans = Uirusu::VTFile.query_report(@api_key, hash)
+    if (scans["response_code"] == 1 )
+
+      positive = ( scans["positives"] > 0 ? true : false  )
+      @rate = scans["positives"].to_s + "/" + scans["total"].to_s
+      @permalink = (scans["permalink"] != "-" ? scans["permalink"] : "null")
+      @result_date = scans["scan_date"]
+      @results = scans["scans"]
+
+
+      return {:rate => @rate, :link => @permalink, :date => @result_date, :results => @results, :positive => positive}
+
+    else
+      LOGGER.error "VTOTAL", scans["verbose_msg"]
+      return false
+    end
+  end
+
+
+	def analyse_file(file)
 		f = File.open(file, 'r')
 		begin
 			results = RestClient.post 'https://www.virustotal.com/vtapi/v2/file/scan' , { :key => @api_key, :file => f}
@@ -35,7 +42,10 @@ class Vtotal < VirusTotal::VirusTotal
 			LOGGER.debug "DEBUG", "#{$!}"
 		end
 		return @scanid 
-	end
+  end
+
+
+
 	
 	
 	def get_report(id)

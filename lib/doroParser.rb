@@ -13,26 +13,18 @@
 ## Data Definition Module ##
 ############################
 
-require 'digest'
-require 'rbvmomi'
-require 'rest_client'
+
 require 'net/dns'
 require 'net/dns/packet'
 require 'ipaddr'
-require 'colored'
-require 'filemagic'
 require 'geoip'
-require 'pg'
-require 'tmail'
 require 'ipaddr'
 require 'net/http'
 require 'json'
 
 require File.dirname(__FILE__) + '/mu/xtractr'
 require File.dirname(__FILE__) + '/dorothy2/DEM'
-require File.dirname(__FILE__) + '/dorothy2/do-utils'
-require File.dirname(__FILE__) + '/dorothy2/do-logger'
-require File.dirname(__FILE__) + '/dorothy2/deep_symbolize'
+
 
 
 module DoroParser
@@ -41,6 +33,7 @@ module DoroParser
   CCIRC = 1
   CCDROP = 3
   CCSUPPORT = 5
+  NONETBIOS = true
 
   def search_irc(streamdata)
 
@@ -53,14 +46,13 @@ module DoroParser
 
       ircvalues.push "default, currval('dorothy.connections_id_seq'), E'#{Insertdb.escape_bytea(m[0])}', #{direction_bool}"
     end
-    return ircvalues
+    ircvalues
   end
 
   def analyze_bintraffic(pcaps)
 
     dns_list = Hash.new
     hosts = []
-    @insertdb.begin_t
 
     pcaps.each do |dump|
       #RETRIVE MALWARE FILE INFO
@@ -92,12 +84,12 @@ module DoroParser
       #The following section is to avoid a crash while quering such (still-empty instance)
       #In addition, an added check is inserted, to see if the pcapr instance really match the pcap filename
       begin
-      pcapr_query = URI.parse "http://#{DoroSettings.pcapr[:host]}:#{DoroSettings.pcapr[:port]}/pcaps/1/about/#{dump['pcapr_id'].rstrip}"
-      pcapr_response = Net::HTTP.get_response(pcapr_query)
-      pcapname = File.basename(JSON.parse(pcapr_response.body)["filename"], ".pcap")
+        pcapr_query = URI.parse "http://#{DoroSettings.pcapr[:host]}:#{DoroSettings.pcapr[:port]}/pcaps/1/about/#{dump['pcapr_id'].rstrip}"
+        pcapr_response = Net::HTTP.get_response(pcapr_query)
+        pcapname = File.basename(JSON.parse(pcapr_response.body)["filename"], ".pcap")
 
-      t ||= $1 if pcapname =~ /[0-9]*\-(.*)$/
-      raise NameError.new if  t != dump['sample'].rstrip
+        t ||= $1 if pcapname =~ /[0-9]*\-(.*)$/
+        raise NameError.new if  t != dump['sample'].rstrip
 
       rescue NameError
         LOGGER_PARSER.error "PARSER", "The pcapr filename mismatchs the one present in Dorothive!. Skipping."
@@ -110,6 +102,9 @@ module DoroParser
 
 
       LOGGER_PARSER.info "PARSER", "Scanning network flows and searching for unknown host IPs".yellow
+
+      @insertdb.begin_t
+
 
       xtractr.flows.each { |flow|
 
@@ -139,7 +134,7 @@ module DoroParser
 
 
             #insert Geoinfo
-            unless(localnet.include?(flow.dst.address) || multicast.include?(flow.dst.address))
+            unless localnet.include?(flow.dst.address) || multicast.include?(flow.dst.address)
 
               geo = Geoinfo.new(flow.dst.address.to_s)
               geoval = ["default", geo.coord, geo.country, geo.city, geo.updated, geo.asn]
@@ -163,9 +158,9 @@ module DoroParser
             #Insert host info
             #ip - geoinfo -  sbl - uptime - is_online - whois - zone - last-update - id - dns_name
             hostname = (dns_list[dest].nil? ? "null" : dns_list[dest])
-            hostval = [dest, geoval, "null", "null", true, "null", "null", get_time, "default", hostname]
+            hostval = [dest, geoval, "null", "null", true, "null", "null", Util.get_time, "default", hostname]
 
-            if	!@insertdb.insert("host_ips",hostval)
+            unless @insertdb.insert("host_ips",hostval)
               LOGGER_PARSER.debug "DB", " Skipping flow #{flow.id}: #{flow.src.address} > #{flow.dst.address}"  if VERBOSE
               next
             end
@@ -179,7 +174,7 @@ module DoroParser
 
           flowvals = [flow.src.address, flow.dst.address, flow.sport, flow.dport, flow.bytes, dump['sha256'], flow.packets, "default", flow.proto, flow.service.name, title, "null", flow.duration, flow.time, flow.id ]
 
-          if	!@insertdb.insert("flows",flowvals)
+          unless @insertdb.insert("flows",flowvals)
             LOGGER_PARSER.info "PARSER", "Skipping flow #{flow.id}: #{flow.src.address} > #{flow.dst.address}"
             next
           end
@@ -424,72 +419,33 @@ module DoroParser
 
     LOGGER_PARSER.info "PARSER", "Started, looking for network dumps into Dorothive.."
 
-    if daemon
-      check_pid_file DoroSettings.env[:pidfile_parser]
-      puts "[PARSER]".yellow + " Going in backround with pid #{Process.pid}"
-      puts "[PARSER]".yellow + " Logging on #{DoroSettings.env[:logfile_parser]}"
-      Process.daemon
-      create_pid_file DoroSettings.env[:pidfile_parser]
-      puts "[PARSER]".yellow + " Going in backround with pid #{Process.pid}"
-    end
 
-    @insertdb = Insertdb.new
     infinite = true
 
-    while infinite
-      pcaps = @insertdb.find_pcap
-      analyze_bintraffic(pcaps)
-      infinite = daemon
-      LOGGER.info "PARSER", "SLEEPING" if daemon
-      sleep DoroSettings.env[:dtimeout].to_i if daemon # Sleeping a while if -d wasn't set, then quit.
-    end
-    LOGGER_PARSER.info "PARSER" , "There are no more pcaps to analyze.".yellow
-    @insertdb.close
-    exit(0)
-  end
+    @insertdb = Insertdb.new
 
-  def check_pid_file file
-    if File.exist? file
-      # If we get Errno::ESRCH then process does not exist and
-      # we can safely cleanup the pid file.
-      pid = File.read(file).to_i
-      begin
-        Process.kill(0, pid)
-      rescue Errno::ESRCH
-        stale_pid = true
+
+    begin
+      while infinite
+        begin
+          pcaps = @insertdb.find_pcap
+          analyze_bintraffic(pcaps)
+        rescue SignalException #, RuntimeError
+          LOGGER.warn "PARSER", "SIGINT".red + " Catched [1], exiting gracefully."
+        end
+        infinite = daemon
+        LOGGER.debug "PARSER", "SLEEPING" if daemon && DEBUG
+        sleep DoroSettings.env[:sleeptime].to_i if daemon # Sleeping a while if -d wasn't set, then quit.
       end
+      LOGGER_PARSER.info "PARSER" , "There are no more pcaps to analyze.".yellow if DEBUG
+      @insertdb.close
+      exit(0)
 
-      unless stale_pid
-        puts "[PARSER]".yellow + " Dorothy is already running (pid=#{pid})"
-        exit(1)
-      end
+    rescue SignalException #, RuntimeError
+      LOGGER.warn "PARSER", "SIGINT".red + " Catched [2], exiting gracefully."
     end
+
   end
 
-  def create_pid_file file
-    File.open(file, "w") { |f| f.puts Process.pid }
-
-    # Remove pid file during shutdown
-    at_exit do
-      LOGGER_PARSER.info "PARSER", "Shutting down." rescue nil
-      if File.exist? file
-        File.unlink file
-      end
-    end
-  end
-
-  # Sends SIGTERM to process in pidfile. Server should trap this
-  # and shutdown cleanly.
-  def self.stop
-    LOGGER_PARSER.info "PARSER", "Shutting down.."
-    pid_file = DoroSettings.env[:pidfile_parser]
-    if pid_file and File.exist? pid_file
-      pid = Integer(File.read(pid_file))
-      Process.kill -15, -pid
-      LOGGER_PARSER.info "PARSER", "Process #{DoroSettings.env[:pidfile_parser]} terminated"
-    else
-      LOGGER_PARSER.info "PARSER", "Can't find PID file, is DoroParser really running?"
-    end
-  end
 
 end

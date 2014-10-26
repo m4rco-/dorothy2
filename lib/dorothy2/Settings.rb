@@ -10,7 +10,8 @@ module Dorothy
     attr_reader :_settings
 
     def load!(filename, options = {})
-      newsets = YAML::load_file(filename).deep_symbolize
+      t  = YAML::load_file(filename).extend DeepSymbolizable
+      newsets = t.deep_symbolize
       newsets = newsets[options[:env].to_sym] if \
                                                options[:env] && \
                                                newsets[options[:env].to_sym]
