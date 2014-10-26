@@ -1,19 +1,11 @@
 #######################################
-#Updating from Dorothy 1.0.x to >= 1.2.0##
+#Updating from Dorothy 1.x to >= 2.0.0##
 #######################################
 
-Dorothy 1.2.0 introduces several features that improve the overall framework.
-Below, the recommended steps needed to update your Dorothy environment.
-
-a) Remove the Dorothy configuration file
-    rm ~/.dorothy.yml
-   And recreate it by restarting Dorothy. You will see that the init script will ask you more question than before.
-
-b) The last version of Dorothy modified the dorothive schema in order to let dorothive compatible with Sinatra and Rails.
-The columns modified are the following:
-    samples.hash -> sample.sha256
-    traffic_dumps.hash -> traffic_dumps.sha256
-You can modify them manually if you have already a previous Dorothy version up and running, or drop the database and recreate it (-D) using the updated .ddl .
-
+Dorothy 2.0.0 introduces several features that improve the overall framework.
+As it is a major update (since 1.2.0), it is not compatible this previous versions, thus it is highly recommended to redo
+ all the installation procedure. If you have been using Dorothy for a while and you have its DB full of precious data that you
+ like to keep on the newer version, please drop me an email and we'll try to find a solution. Keep in mind that also the
+ Dorothive schema has changed, thus a you should create a new DB for this dorothy version.
 
 

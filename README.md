@@ -5,47 +5,71 @@ A malware/botnet analysis framework written in Ruby.
 For a perfect view of this document (images and links), open it through the project's [code repository](https://github.com/m4rco-/dorothy2/blob/master/README.md).
 
 For any issue, use our [Redmine](https://redmine.honeynet.it/projects/dorothy2)
+
+A wiki page for dorothy2 is under construction. Please take a look at [it](https://redmine.honeynet.it/projects/dorothy2/wiki).
+
 ##Introduction
 
-Dorothy2 is a framework created for mass malware analysis. Currently, it is mainly based on analyzing the network behavior of a virtual machine where a suspicious executable was executed.
-Additionally, it is able to recognize new spawned processes by comparing them with a previously created baseline.
-Static binary analysis and an improved system behavior analysis will be shortly introduced in the next versions.
+Dorothy2 is a framework created for suspicious binary analysis. 
+It’s main strengths are a very flexible modular environment, and an interactive investigation framework with a particular care of the network analysis.
+Additionally, it is able to recognise new spawned processes by comparing them with a previously created baseline.
+Static binary analysis and an improved system behaviour analysis will be shortly introduced in the next versions.
+Dorothy2 analyses binaries by the use of pre-configured _analysis profiles_. An analysis profile is composed by the following elements:
 
-Dorothy2 is a continuation of my Bachelor degree's final project ([Dorothy: inside the Storm](https://www.honeynet.it/wp-content/uploads/Dorothy/The_Dorothy_Project.pdf) ) that I presented on Feb 2009.
-The main framework's structure remained almost the same, and it has been fully detailed in my degree's final project or in this short [paper](http://www.honeynet.it/wp-content/uploads/Dorothy/EC2ND-Dorothy.pdf). More information about the whole project can be found on the Italian Honeyproject [website](http://www.honeynet.it).
+* A certain sandbox OS type  
+* A certain sandbox OS version
+* A certain sandbox OS language
+* A fixed analysis timeout (how long to wait before reverting the VM)
+* The number of screenshots requested (and the delay between them)
+* A list of the supported extensions, and how the guest OS should execute them
+
+The use of profiles gives the researcher the possibility to run analysis on a set of binaries by using different environments. As it is known, some malwares are configured to run only in specific environment. A CSIRT, might use them to test suspicious malwares only against an environment that reflects the one of its customers. 
+Sources can also be configured to be automatically analysed by certain profiles (e.g. use Profile_Windows_30sc for all the binaries retrieved by Kippo_source).
+ 
+
+Dorothy2 is a continuation of my Bachelor degree's final project ([Dorothy: inside the Storm](https://www.honeynet.it/wp-content/uploads/Dorothy/The_Dorothy_Project.pdf) ) that I presented on Feb 2009. More information about the whole project can be found on the Italian Honeyproject [website](http://www.honeynet.it).
 
 
-The framework is mainly composed by four big elements that can be even executed separately:
+The framework is mainly composed by five modules that can be even executed separately. 
+The following picture gives an overview of the current modules and how they are connected each others.
+>![dorothy.modules](http://www.honeynet.it/wp-content/uploads/dorothy2-structure.jpg)
 
-* The Dorothy analysis engine (included in this gem)
+* The Binary Fetcher Module (BFM)
 
- In charge of executing a binary file into a sandbox, and then storing the generated network traffic and its screenshots into the analysis folder (moreover populating Dorothive with the basic information of the file, and CouchDB with the network pcaps).
+ In charge of retrieving the binaries from the configured sources. Currently a “binary source” can be system folder, an email-box, or a host reachable by ssh. Once the binaries have been retrieved, the BFM will populate the analysis queue.
 
-* The (network) Data Extraction Module aka dparser (included in this gem)
+* The Dorothy analysis engine 
+
+ In charge of analysing the queue by executing the scheduled binaries into a sandbox, and then storing the generated network traffic and its screenshots into the analysis folder (moreover populating Dorothive with the basic information of the file, and CouchDB with the network pcaps).
+
+* The (network) Data Extraction Module (old dparser) 
 
  In charge of dissecting the pcaps file, and storing the most relevant information (flows data, GeoIP info, etc) into Dorothive. In addition, it extracts all the files downloaded by the sandbox through HTTP/HTTPS and store them into the binary file's analysis folder.
 
-* The Webgui (Coded in Rails by Andrea Valerio, and not yet included in this gem)
+* The (dummy) Webgui 
 
- (Working in progress) A rails application which allows to have an interactive overview on all the acquired data. For a first glance on Andrea's first PoC take a look [this](http://youtu.be/W4DdMYPp4Ws) video (commented in Italian).
+ A dummy Sinatra application which gives an interactive overview on all the acquired data. WARNING: this module is intended to be executed in an controlled environment. The author strongly discourage to expose it on the Internet.
+
 
 * The Java Dorothy Drone (Mainly coded by Patrizia Martemucci and Domenico Chiarito, but not part of this gem and not publicly available.)
 
  Our botnet infiltration module, refers to this [ppt](https://www.honeynet.it/wp-content/uploads/Presentations/JDrone.pptx) presentation for an overview.
 
-The first three modules are (or will be soon) publicly released under GPL 3 license as tribute to the the [Honeynet Project Alliance](http://www.honeynet.org).
+The first four modules are publicly released under GPL 3 license as tribute to the the [Honeynet Project Alliance](http://www.honeynet.org).
 All the information generated by the framework - i.e. binary info, timestamps, dissected network analysis - are stored into a postgres DB (Dorothive) in order to be used for further analysis.
 A no-SQL database (CouchDB) is also used to mass store all the traffic dumps thanks to the [pcapr/xtractr](https://code.google.com/p/pcapr/wiki/Xtractr) technology.
 
 I started to code this project in late 2009 while learning Ruby at the same time. Since then, I´ve been changing/improving it as long as my Ruby coding skills were improving. Because of that, you may find some parts of code not-really-tidy :)
 
+
+
 ##Requirements
 
 >WARNING:
-The current version of Dorothy only utilizes VMWare ESX5 as its Virtual Sandbox Module (VSM). Thus, the free version of ESXi is not supported due to its limitations in using the
+The current version of Dorothy only utilises VMWare ESX5 as its Virtual Sandbox Module (VSM). Thus, the free version of ESXi is not supported due to its limitations in using the
 vSphere 5 API.
-However, the overall framework could be easily customized in order to use another virtualization engine. Dorothy2 is
-very [modular](http://www.honeynet.it/wp-content/uploads/The_big_picture.pdf),and any customization or modification is very welcome.
+However, the overall framework could be easily customised in order to use another virtualization engine. Dorothy2 is
+very [modular](http://www.honeynet.it/wp-content/uploads/The_big_picture.pdf),and any customisation or modification is very welcome.
 
 Dorothy needs the following software (not expressly in the same host) in order to be executed:
 
@@ -230,65 +254,58 @@ Finally, check out the file extensions.yml within the /etc folder: it instructs 
 
 ### Dorothy usage:
 
-	$dorothy_start [options]
+	Usage:
+  	dorothy2 [options]
 	where [options] are:
-       --Verbose, -V:   Print the current version
-       --verbose, -v:   Enable verbose mode
-      --infoflow, -i:   Print the analysis flow
-      --baseline, -b:   Create a new process baseline
-    --source, -s <s>:   Choose a source (from the ones defined in etc/sources.yml)
-        --daemon, -d:   Stay in the background, by constantly pooling datasources
-        --manual, -m:   Start everything, copy the file, and wait for me.
-  --SandboxUpdate, -S:  Update Dorothive with the new Sandbox file
-  --DorothiveInit, -D:  (RE)Install the Dorothy Database (Dorothive)
-          --help, -h:   Show this message
+            --Version, -V:   Print the current version.
+            --verbose, -v:   Enable verbose mode
+           --infoflow, -i:   Print the analysis flow
+       --baseline, -b <s>:   Create a new process baseline
+         --source, -s <s>:   Choose a source (from the ones defined in etc/sources.yml)
+       --CreateSource, -C:   Create new source file
+         --daemon, -d <s>:   (start|stop) Execute/kill the selected module (-W, -B, -A) in backround. If no modules are specified, it will exec/kill all of them.
+              --debug, -e:   Add extensive log trails
+             --manual, -m:   Start everything, copy the file, and wait for me.
+      --SandboxUpdate, -S:   Update Dorothive with the new Sandbox file
+		--DorothiveInit, -D <s>:   (RE)Install the Dorothy Database (Dorothive)
+		--queue, -q:   Show the analysis queue
+		--Analyser, -A:   Execute only the Analyser Module (will analalyse only the current queue)
+		--BFM, -B:   Execute only the Binary Fetcher Module (BFM)
+		--DEM, -E:   Execute only the network Data Extation Module (DEM) aka doroParser
+		--WebGUI, -W:   Execute the WebGUI Module (WGUI)
+		--help, -h:   Show this message
 
 
- >Example
->
-     $dorothy_start -v -s malwarefolder
+>Example
 
-After the execution, if everything went fine, you will find the analysis output (screens/pcap/bin) into the analysis folder that you have configured e.g. dorothy/opt/analyzed/[:digit:]/
-Other information will be stored into Dorothive.
-If executed in daemon mode, Dorothy2 will poll the datasources every X seconds (where X is defined by the "dtimeout:" field in the configuration file) looking for new binaries.
+>     $dorothy2 -v -d start
+> This will execute all the modules in background
 
-### DoroParser usage:
+ The first time dorothy2 is executed it will drive the user into configuring the analysis environment, more specifically the user will get through the following configuration steps:
 
-    $dparser_start [options]
-	where [options] are:
-    --verbose, -v:   Enable verbose mode
-    --nonetbios, -n:   Hide Netbios communication
-     --daemon, -d:   Stay in the backroud, by constantly pooling datasources
-       --help, -h:   Show this message
+* Configuring the general env variables ($home/.dorothy.yml)
+* Configuring the BFM sources ($dorothyhome/etc/sources.yml)
+* Configuring the sandboxes ($dorothyhome/etc/sandboxes.yml) 
+* Configuring the analysis profiles (auto-filled) ($dorothyhome/etc/profiles.yml)
 
- >Example
->
-     $dparser_start -d start
-     $dparser_stop
+Once the configuration step will be performed, the user will be always able to edit the configuration files at anytime. 
 
 
-After the execution, if everything went fine, doroParser will store all the donwloaded files into the binary's analysis folder e.g. dorothy/opt/analyzed/[:digit:]/downloads
-Other information -i.e. Network data- will be stored into Dorothive.
-If executed in daemon mode, DoroParser will poll the database every X seconds (where X is defined by the "dtimeout:" field in the configuration file) looking for new pcaps that has been inserted.
+
 
 ###6. Debugging problems
 
-I recognize that setting up Dorothy is not the easiest task of the world.
+I do recognise that setting up Dorothy is not the easiest task of the world.
 By considering that the whole framework consists in the union of several 3rd pats, it is very likely that one of them will fail during the process.
 Below there are some tips about how understand the root-cause of your crash.
 
-1. Execute the Dorothy UnitTest (tc_dorothy_full.rb) that resides in its gem home directory
+1. Set the verbose flag (-v) while executing dorothy, or the —debug flag for additional debugging trails.
 
- >Example
+> $dorothy_start -v -d -s malwarefolder
 
-    $cd /opt/local/lib/ruby/gems/1.9.3/gems/dorothy2-0.0.1/test/
-    $ruby tc_dorothy_full.rb
+2. If any error occours, go to our Redmine and raise a [bug-ticket](https://redmine.honeynet.it/projects/dorothy2/)!
 
-2. Set the verbose flag (-v) while executing dorothy
-
-> $dorothy_start -v -s malwarefolder
-
-3. If any error occours, go to our Redmine and raise a [bug-ticket](https://redmine.honeynet.it/projects/dorothy2/)!    
+3. Write at dorothy2 at googlegroups.com
 
 ------------------------------------------
 
@@ -296,13 +313,12 @@ Below there are some tips about how understand the root-cause of your crash.
 
 Thanks to all the people who have contributed in making the Dorothy2 project up&running:
 
-* Marco C. (research)
+* Marco C. (Research)
 * Davide C. (Dorothive)
-* Andrea V. (WGUI)
+* Federico S. - Calogero L. (Infrastructure)
 * Domenico C. - Patrizia P. (Dorothive/JDrone)
 * [All](https://www.honeynet.it/research) the graduating students from [UniMI](http://cdlonline.di.unimi.it/) who have contributed.
 * Sabrina P. (our students "headhunter" :)
-* Jorge C. and Nelson M. (betatesting/first release feedbacks)
 
 ## Contributing
 
@@ -315,6 +331,8 @@ Thanks to all the people who have contributed in making the Dorothy2 project up&
 Every contribution is more than welcome!
 For any help, please don't hesitate in contacting us at :
 info at honeynet.it
+or through our ML:
+dorothy2 at googlegroups.com
 
 ## License
 
