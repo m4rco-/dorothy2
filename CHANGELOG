@@ -1,14 +1,39 @@
-Dorothy 1.2.0
+#Dorothy 2.0
+############
+    Dorothive
+        Schema expanded and fixed for sinatra/rails application
 
-dorothy.yml
-     added sandbox’s network (needed by DEM)
-     added GeoIP.ISP 
+    Binaries
+        Remove unnecessary binaries (_start, _stop) now everything can be done with dorothy2.
+        Added more arguments for controlling the modules, see the help -h
 
-fix dparser
-     iconv deprecated
-     added GeoIP.ISP
-     removed lot of unused classes in DEM
- 
-dorothive
-    samples.hash -> sample.sha256
-    traffic_dumps.hash -> traffic_dumps.sha256
+    Core
+        Introduction of an analysis queue
+        Samples can be submitted through the WebGUI now
+        Samples can be retrieved from email accounts
+        Modules (analysed, BFM, DEM and WGUI) can now be executed alone
+        Introduced the use of analysis profiles
+
+
+    WGUI
+        Added a dummy sinatra webgui
+        Interactive reporting
+        PCAP data analysis
+
+
+
+
+#Dorothy 1.2.0
+###############
+    dorothy.yml
+         added sandbox’s network (needed by DEM)
+         added GeoIP.ISP
+
+    fix dparser
+         iconv deprecated
+         added GeoIP.ISP
+         removed lot of unused classes in DEM
+
+    dorothive
+        samples.hash -> sample.sha256
+        traffic_dumps.hash -> traffic_dumps.sha256
