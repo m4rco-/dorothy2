@@ -13,7 +13,7 @@ A wiki page for dorothy2 is under construction. Please take a look at [it](https
 ##Introduction
 
 Dorothy2 is a framework created for suspicious binary analysis. 
-It’s main strengths are a very flexible modular environment, and an interactive investigation framework with a particular care of the network analysis.
+Its main strengths are a very flexible modular environment, and an interactive investigation framework with a particular care of the network analysis.
 Additionally, it is able to recognise new spawned processes by comparing them with a previously created baseline.
 Static binary analysis and an improved system behaviour analysis will be shortly introduced in the next versions.
 Dorothy2 analyses binaries by the use of pre-configured _analysis profiles_. An analysis profile is composed by the following elements:
