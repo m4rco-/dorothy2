@@ -225,8 +225,8 @@ In case you want to install pcapr here do this as well:
 ### 4. Start Dorothy, and configure it!
 
 0. Install MaxMind libraries
-    * [GeoLiteCity](http://geolite.maxmind.com/download/geoip/database/GeoLiteCity.dat.gz)
-    * [GeoLite ASN](http://download.maxmind.com/download/geoip/database/asnum/GeoIPASNum.dat.gz)
+    * [GeoLiteCity](https://geolite.maxmind.com/download/geoip/database/GeoLiteCity.dat.gz)
+    * [GeoLite ASN](https://download.maxmind.com/download/geoip/database/asnum/GeoIPASNum.dat.gz)
     * Copy GeoLiteCity.dat and GeoIPASNum.dat into Dorothy's etc/geo/ folder
 
 1. Start Dorothy
